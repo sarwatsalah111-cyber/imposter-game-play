@@ -1,14 +1,26 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useGame, GameProvider } from '@/contexts/GameContext';
+import { HomeScreen } from '@/components/game/HomeScreen';
+import { LobbyScreen } from '@/components/game/LobbyScreen';
+import { GameScreen } from '@/components/game/GameScreen';
+import { getDir } from '@/lib/i18n';
 
-const Index = () => {
+function GameRouter() {
+  const { room, phase, language } = useGame();
+  const dir = getDir(language);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div dir={dir} className="min-h-screen bg-background">
+      {!room && <HomeScreen />}
+      {room && phase === 'lobby' && <LobbyScreen />}
+      {room && phase !== 'lobby' && <GameScreen />}
     </div>
   );
-};
+}
+
+const Index = () => (
+  <GameProvider>
+    <GameRouter />
+  </GameProvider>
+);
 
 export default Index;

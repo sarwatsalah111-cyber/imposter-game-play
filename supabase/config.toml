@@ -1,0 +1,4 @@
+project_id = "gsdpfgwoeisbsishbaov"
+
+[functions.game-engine]
+verify_jwt = false
