@@ -19,6 +19,9 @@ export function useGameEngine() {
     joinRoom: (session_id: string, nickname: string, code: string) =>
       callEngine<{ room: Record<string, unknown> }>('join-room', { session_id, nickname, code }),
 
+    updateSettings: (session_id: string, room_id: string, settings: Record<string, unknown>) =>
+      callEngine<{ success: boolean }>('update-settings', { session_id, room_id, settings }),
+
     startGame: (session_id: string, room_id: string) =>
       callEngine<{ success: boolean; round: number }>('start-game', { session_id, room_id }),
 
@@ -27,6 +30,12 @@ export function useGameEngine() {
 
     advancePhase: (session_id: string, room_id: string, phase: string) =>
       callEngine<{ success: boolean }>('advance-phase', { session_id, room_id, phase }),
+
+    markSpoke: (session_id: string, room_id: string) =>
+      callEngine<{ success: boolean }>('mark-spoke', { session_id, room_id }),
+
+    getSpokeStatus: (room_id: string) =>
+      callEngine<{ spoken: string[] }>('get-spoke-status', { room_id }),
 
     vote: (session_id: string, room_id: string, target_session_id: string) =>
       callEngine<{ success: boolean }>('vote', { session_id, room_id, target_session_id }),

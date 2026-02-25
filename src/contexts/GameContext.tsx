@@ -25,6 +25,7 @@ interface GameState {
     top_voted: string[];
   } | null;
   hasVoted: boolean;
+  spokenPlayers: string[];
 }
 
 interface GameActions {
@@ -32,8 +33,10 @@ interface GameActions {
   setLanguage: (lang: Language) => void;
   createRoom: () => Promise<void>;
   joinRoom: (code: string) => Promise<void>;
+  updateSettings: (settings: Record<string, unknown>) => Promise<void>;
   startGame: () => Promise<void>;
   advancePhase: (phase: GamePhase) => Promise<void>;
+  markSpoke: () => Promise<void>;
   vote: (targetSessionId: string) => Promise<void>;
   leaveRoom: () => Promise<void>;
   finishGame: () => Promise<void>;
@@ -64,6 +67,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     loading: false,
     results: null,
     hasVoted: false,
+    spokenPlayers: [],
   });
   const heartbeatRef = useRef<NodeJS.Timeout>();
 
@@ -89,7 +93,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           setState(prev => {
             if (!prev.room) return prev;
             const updated = { ...prev.room };
-            // Update safe fields only
             (['phase', 'status', 'host_session_id', 'current_round', 'updated_at', 'closed_at',
               'language', 'discussion_time', 'voting_time', 'reveal_time', 'total_rounds', 'max_players',
             ] as const).forEach(k => {
@@ -110,11 +113,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         table: 'room_players',
         filter: `room_id=eq.${roomId}`,
       }, () => {
-        // Refetch players
         supabase.from('room_players').select('*').eq('room_id', roomId)
           .then(({ data }) => {
             if (data) update({ players: data as unknown as RoomPlayer[] });
           });
+      })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'room_events',
+        filter: `room_id=eq.${roomId}`,
+      }, (payload) => {
+        const evt = payload.new as Record<string, unknown>;
+        if (evt.event_type === 'spoke') {
+          setState(prev => {
+            const sid = evt.session_id as string;
+            if (prev.spokenPlayers.includes(sid)) return prev;
+            return { ...prev, spokenPlayers: [...prev.spokenPlayers, sid] };
+          });
+        }
       })
       .subscribe();
 
@@ -134,6 +151,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (state.phase === 'reveal' && state.room && !state.reveal) {
       engine.getReveal(state.sessionId, state.room.id)
         .then(reveal => update({ reveal }))
+        .catch(() => {});
+    }
+  }, [state.phase, state.room?.id]);
+
+  // Reset spoken players when entering discussion phase & fetch current status
+  useEffect(() => {
+    if (state.phase === 'discussion' && state.room) {
+      update({ spokenPlayers: [] });
+      engine.getSpokeStatus(state.room.id)
+        .then(({ spoken }) => update({ spokenPlayers: spoken.filter(Boolean) as string[] }))
         .catch(() => {});
     }
   }, [state.phase, state.room?.id]);
@@ -159,7 +186,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const { room } = await engine.createRoom(state.sessionId, state.nickname, state.language);
         const r = room as unknown as Room;
         update({ room: r, phase: 'lobby', isHost: true, loading: false });
-        // Fetch players
         const { data: players } = await supabase.from('room_players').select('*').eq('room_id', r.id);
         if (players) update({ players: players as unknown as RoomPlayer[] });
       } catch (e: unknown) {
@@ -172,8 +198,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const { room } = await engine.joinRoom(state.sessionId, state.nickname, code);
         const r = room as unknown as Room;
         update({
-          room: r,
-          phase: r.phase,
+          room: r, phase: r.phase,
           isHost: r.host_session_id === state.sessionId,
           loading: false,
         });
@@ -183,12 +208,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         update({ error: (e as Error).message, loading: false });
       }
     },
+    updateSettings: async (settings) => {
+      if (!state.room) return;
+      try {
+        await engine.updateSettings(state.sessionId, state.room.id, settings);
+      } catch (e: unknown) {
+        update({ error: (e as Error).message });
+      }
+    },
     startGame: async () => {
       if (!state.room) return;
       update({ loading: true, error: null });
       try {
         await engine.startGame(state.sessionId, state.room.id);
-        update({ loading: false, reveal: null, results: null, hasVoted: false });
+        update({ loading: false, reveal: null, results: null, hasVoted: false, spokenPlayers: [] });
       } catch (e: unknown) {
         update({ error: (e as Error).message, loading: false });
       }
@@ -197,6 +230,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (!state.room) return;
       try {
         await engine.advancePhase(state.sessionId, state.room.id, phase);
+      } catch (e: unknown) {
+        update({ error: (e as Error).message });
+      }
+    },
+    markSpoke: async () => {
+      if (!state.room) return;
+      try {
+        await engine.markSpoke(state.sessionId, state.room.id);
       } catch (e: unknown) {
         update({ error: (e as Error).message });
       }
@@ -214,20 +255,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (state.room) {
         await engine.leaveRoom(state.sessionId, state.room.id).catch(() => {});
       }
-      update({ room: null, players: [], phase: 'lobby', reveal: null, results: null, isHost: false, hasVoted: false });
+      update({ room: null, players: [], phase: 'lobby', reveal: null, results: null, isHost: false, hasVoted: false, spokenPlayers: [] });
     },
     finishGame: async () => {
       if (!state.room) return;
       try {
         await engine.finishGame(state.sessionId, state.room.id);
-        update({ room: null, players: [], phase: 'lobby', reveal: null, results: null, isHost: false, hasVoted: false });
+        update({ room: null, players: [], phase: 'lobby', reveal: null, results: null, isHost: false, hasVoted: false, spokenPlayers: [] });
       } catch (e: unknown) {
         update({ error: (e as Error).message });
       }
     },
     clearError: () => update({ error: null }),
     goHome: () => {
-      update({ room: null, players: [], phase: 'lobby', reveal: null, results: null, isHost: false, hasVoted: false });
+      update({ room: null, players: [], phase: 'lobby', reveal: null, results: null, isHost: false, hasVoted: false, spokenPlayers: [] });
     },
   };
 

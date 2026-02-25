@@ -34,7 +34,6 @@ Deno.serve(async (req) => {
         const { session_id, nickname, language = 'EN', settings } = params;
         if (!session_id || !nickname) return json({ error: 'Missing session_id or nickname' }, 400);
 
-        // Generate unique code
         let code = generateRoomCode();
         let attempts = 0;
         while (attempts < 10) {
@@ -55,20 +54,15 @@ Deno.serve(async (req) => {
         if (settings) {
           if (settings.max_players) roomData.max_players = Math.min(Math.max(settings.max_players, 4), 12);
           if (settings.total_rounds) roomData.total_rounds = Math.min(Math.max(settings.total_rounds, 1), 10);
-          if (settings.discussion_time) roomData.discussion_time = settings.discussion_time;
-          if (settings.voting_time) roomData.voting_time = settings.voting_time;
+          if (settings.voting_time) roomData.voting_time = Math.min(Math.max(settings.voting_time, 15), 120);
         }
 
         const { data: room, error: roomErr } = await supabase
           .from('rooms').insert(roomData).select().single();
         if (roomErr) return json({ error: roomErr.message }, 500);
 
-        // Add host as player
         await supabase.from('room_players').insert({
-          room_id: room.id,
-          session_id,
-          nickname,
-          is_host: true,
+          room_id: room.id, session_id, nickname, is_host: true,
         });
 
         await supabase.from('room_events').insert({
@@ -76,6 +70,24 @@ Deno.serve(async (req) => {
         });
 
         return json({ room: { ...room, secret_word: undefined, imposter_session_id: undefined } });
+      }
+
+      case 'update-settings': {
+        const { session_id, room_id, settings } = params;
+        if (!session_id || !room_id || !settings) return json({ error: 'Missing fields' }, 400);
+
+        const { data: room } = await supabase
+          .from('rooms').select('host_session_id, phase').eq('id', room_id).single();
+        if (!room) return json({ error: 'Room not found' }, 404);
+        if (room.host_session_id !== session_id) return json({ error: 'Only host' }, 403);
+        if (room.phase !== 'lobby') return json({ error: 'Can only change settings in lobby' }, 400);
+
+        const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+        if (settings.total_rounds !== undefined) updates.total_rounds = Math.min(Math.max(settings.total_rounds, 1), 10);
+        if (settings.voting_time !== undefined) updates.voting_time = Math.min(Math.max(settings.voting_time, 15), 120);
+
+        await supabase.from('rooms').update(updates).eq('id', room_id);
+        return json({ success: true });
       }
 
       case 'join-room': {
@@ -86,25 +98,20 @@ Deno.serve(async (req) => {
           .from('rooms').select('*').eq('code', code).eq('status', 'waiting').maybeSingle();
         if (roomErr || !room) return json({ error: 'Room not found or already started' }, 404);
 
-        // Check capacity
         const { count } = await supabase
           .from('room_players').select('*', { count: 'exact', head: true }).eq('room_id', room.id);
         if ((count || 0) >= room.max_players) return json({ error: 'Room is full' }, 400);
 
-        // Check duplicate
         const { data: existing } = await supabase
           .from('room_players').select('id').eq('room_id', room.id).eq('session_id', session_id).maybeSingle();
         if (existing) {
-          // Update nickname and reconnect
           await supabase.from('room_players').update({ nickname, is_online: true, last_heartbeat: new Date().toISOString() })
             .eq('id', existing.id);
           return json({ room: { ...room, secret_word: undefined, imposter_session_id: undefined } });
         }
 
         const { error: joinErr } = await supabase.from('room_players').insert({
-          room_id: room.id,
-          session_id,
-          nickname,
+          room_id: room.id, session_id, nickname,
         });
         if (joinErr) return json({ error: joinErr.message }, 500);
 
@@ -129,14 +136,12 @@ Deno.serve(async (req) => {
           return json({ error: `Need at least ${room.min_players} players` }, 400);
         }
 
-        // Pick random word
         const { data: words } = await supabase
           .from('word_bank').select('word')
           .eq('language', room.language).eq('is_active', true);
         if (!words || words.length === 0) return json({ error: 'No words available' }, 500);
         const secretWord = words[Math.floor(Math.random() * words.length)].word;
 
-        // Pick random imposter
         const imposterIdx = Math.floor(Math.random() * players.length);
         const imposterSessionId = players[imposterIdx].session_id;
 
@@ -168,7 +173,6 @@ Deno.serve(async (req) => {
           return json({ error: 'Not in reveal phase' }, 400);
         }
 
-        // Verify player is in room
         const { data: player } = await supabase
           .from('room_players').select('id').eq('room_id', room_id).eq('session_id', session_id).maybeSingle();
         if (!player) return json({ error: 'Not in room' }, 403);
@@ -177,6 +181,61 @@ Deno.serve(async (req) => {
           return json({ role: 'imposter' });
         }
         return json({ role: 'normal', word: room.secret_word });
+      }
+
+      case 'mark-spoke': {
+        const { session_id, room_id } = params;
+        const { data: room } = await supabase
+          .from('rooms').select('phase, current_round').eq('id', room_id).single();
+        if (!room || room.phase !== 'discussion') return json({ error: 'Not in discussion phase' }, 400);
+
+        // Check not already marked
+        const { data: existing } = await supabase
+          .from('room_events').select('id')
+          .eq('room_id', room_id)
+          .eq('event_type', 'spoke')
+          .eq('session_id', session_id)
+          .maybeSingle();
+        // Use round data to filter - check if spoke this round
+        const { data: spokeEvents } = await supabase
+          .from('room_events').select('id, data')
+          .eq('room_id', room_id)
+          .eq('event_type', 'spoke')
+          .eq('session_id', session_id);
+        
+        const alreadySpoke = (spokeEvents || []).some(e => {
+          const d = e.data as Record<string, unknown> | null;
+          return d && d.round === room.current_round;
+        });
+        if (alreadySpoke) return json({ error: 'Already marked as spoke' }, 400);
+
+        await supabase.from('room_events').insert({
+          room_id, event_type: 'spoke', session_id,
+          data: { round: room.current_round },
+        });
+
+        return json({ success: true });
+      }
+
+      case 'get-spoke-status': {
+        const { room_id } = params;
+        const { data: room } = await supabase
+          .from('rooms').select('current_round').eq('id', room_id).single();
+        if (!room) return json({ error: 'Room not found' }, 404);
+
+        const { data: events } = await supabase
+          .from('room_events').select('session_id, data')
+          .eq('room_id', room_id)
+          .eq('event_type', 'spoke');
+
+        const spoken = (events || [])
+          .filter(e => {
+            const d = e.data as Record<string, unknown> | null;
+            return d && d.round === room.current_round;
+          })
+          .map(e => e.session_id);
+
+        return json({ spoken });
       }
 
       case 'advance-phase': {
@@ -214,16 +273,13 @@ Deno.serve(async (req) => {
         if (!room || room.phase !== 'voting') return json({ error: 'Not voting phase' }, 400);
         if (session_id === target_session_id) return json({ error: 'Cannot vote for yourself' }, 400);
 
-        // Check not already voted
         const { data: existingVote } = await supabase
           .from('votes').select('id').eq('room_id', room_id).eq('round', room.current_round).eq('voter_session_id', session_id).maybeSingle();
         if (existingVote) return json({ error: 'Already voted' }, 400);
 
         await supabase.from('votes').insert({
-          room_id,
-          round: room.current_round,
-          voter_session_id: session_id,
-          target_session_id,
+          room_id, round: room.current_round,
+          voter_session_id: session_id, target_session_id,
         });
 
         return json({ success: true });
@@ -238,7 +294,6 @@ Deno.serve(async (req) => {
         const { data: votes } = await supabase
           .from('votes').select('*').eq('room_id', room_id).eq('round', room.current_round);
 
-        // Tally votes
         const tally: Record<string, number> = {};
         (votes || []).forEach(v => {
           tally[v.target_session_id] = (tally[v.target_session_id] || 0) + 1;
@@ -253,9 +308,7 @@ Deno.serve(async (req) => {
           votes: tally,
           imposter_session_id: room.imposter_session_id,
           secret_word: room.secret_word,
-          caught,
-          isTie,
-          top_voted: topVoted,
+          caught, isTie, top_voted: topVoted,
         });
       }
 
@@ -266,7 +319,6 @@ Deno.serve(async (req) => {
           room_id, event_type: 'left', session_id,
         });
 
-        // Check if host left, migrate
         const { data: room } = await supabase.from('rooms').select('host_session_id').eq('id', room_id).single();
         if (room && room.host_session_id === session_id) {
           const { data: nextHost } = await supabase
@@ -288,8 +340,7 @@ Deno.serve(async (req) => {
       case 'heartbeat': {
         const { session_id, room_id } = params;
         await supabase.from('room_players').update({
-          last_heartbeat: new Date().toISOString(),
-          is_online: true,
+          last_heartbeat: new Date().toISOString(), is_online: true,
         }).eq('room_id', room_id).eq('session_id', session_id);
         return json({ success: true });
       }
@@ -300,8 +351,7 @@ Deno.serve(async (req) => {
         if (!room || room.host_session_id !== session_id) return json({ error: 'Only host' }, 403);
 
         await supabase.from('rooms').update({
-          phase: 'finished',
-          status: 'closed',
+          phase: 'finished', status: 'closed',
           updated_at: new Date().toISOString(),
           closed_at: new Date().toISOString(),
         }).eq('id', room_id);
