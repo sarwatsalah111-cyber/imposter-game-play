@@ -135,6 +135,26 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       })
       .subscribe();
 
+    // Poll room phase every 5s as fallback for iOS/Safari where realtime can be unreliable
+    const phasePollRef = setInterval(() => {
+      supabase.from('rooms').select('phase,current_round,voting_time,total_rounds,host_session_id').eq('id', roomId).single()
+        .then(({ data }) => {
+          if (data) {
+            setState(prev => {
+              if (!prev.room) return prev;
+              const newPhase = data.phase as GamePhase;
+              if (newPhase === prev.phase && data.current_round === prev.room.current_round) return prev;
+              return {
+                ...prev,
+                phase: newPhase,
+                room: { ...prev.room, phase: newPhase, current_round: data.current_round, voting_time: data.voting_time, total_rounds: data.total_rounds, host_session_id: data.host_session_id },
+                isHost: data.host_session_id === prev.sessionId,
+              };
+            });
+          }
+        });
+    }, 5000);
+
     // Heartbeat
     heartbeatRef.current = setInterval(() => {
       engine.heartbeat(state.sessionId, roomId).catch(() => {});
@@ -142,6 +162,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       supabase.removeChannel(roomChannel);
+      clearInterval(phasePollRef);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     };
   }, [state.room?.id, state.sessionId]);

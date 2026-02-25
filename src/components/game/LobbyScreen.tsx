@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
 import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 
 function SettingControl({ label, value, onChange, min, max, step = 1, suffix = '' }: {
   label: string; value: number; onChange: (v: number) => void;
@@ -36,6 +36,7 @@ export function LobbyScreen() {
   const { room, players, isHost, language, sessionId, startGame, updateSettings, leaveRoom, loading } = useGame();
   const [copied, setCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
   if (!room) return null;
 
@@ -48,7 +49,10 @@ export function LobbyScreen() {
   const canStart = isHost && players.filter(p => p.is_online).length >= room.min_players;
 
   const handleSettingChange = (key: string, value: number) => {
-    updateSettings({ [key]: value });
+    if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key]);
+    debounceTimers.current[key] = setTimeout(() => {
+      updateSettings({ [key]: value });
+    }, 400);
   };
 
   return (
