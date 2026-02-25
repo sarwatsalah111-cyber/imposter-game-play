@@ -4,7 +4,7 @@ import { LobbyScreen } from '@/components/game/LobbyScreen';
 import { GameScreen } from '@/components/game/GameScreen';
 import { getDir } from '@/lib/i18n';
 
-function GameRouter() {
+function GameContent() {
   const { room, phase, language } = useGame();
   const dir = getDir(language);
 
@@ -17,10 +17,10 @@ function GameRouter() {
   );
 }
 
-const Index = () => (
-  <GameProvider>
-    <GameRouter />
-  </GameProvider>
-);
-
-export default Index;
+export default function Index() {
+  return (
+    <GameProvider>
+      <GameContent />
+    </GameProvider>
+  );
+}
