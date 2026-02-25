@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Eye, EyeOff, MessageCircle, Vote, Trophy, Timer, ArrowRight, Home, Crown, CheckCircle, Target } from 'lucide-react';
+import { Eye, EyeOff, MessageCircle, Vote, Trophy, Timer, ArrowRight, Home, Crown, CheckCircle, Target, Mic, MicOff } from 'lucide-react';
 
 function CountdownTimer({ seconds, onComplete }: { seconds: number; onComplete?: () => void }) {
   const [timeLeft, setTimeLeft] = useState(seconds);
@@ -104,7 +104,7 @@ function RevealPhase() {
           className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-display font-bold glow-green hover:opacity-90 transition-all flex items-center gap-2"
         >
           <MessageCircle className="w-4 h-4" />
-          {t('game.discussion', language)}
+          {t('game.speakingQueue', language)}
           <ArrowRight className="w-4 h-4" />
         </button>
       )}
@@ -112,34 +112,95 @@ function RevealPhase() {
   );
 }
 
-function DiscussionPhase() {
-  const { room, language, isHost, advancePhase } = useGame();
+function SpeakingQueuePhase() {
+  const { room, players, language, sessionId, isHost, advancePhase, markSpoke, spokenPlayers } = useGame();
+  const activePlayers = players.filter(p => p.is_online && !p.is_eliminated);
+  const allSpoken = activePlayers.length > 0 && activePlayers.every(p => spokenPlayers.includes(p.session_id));
+  const hasMeSpoken = spokenPlayers.includes(sessionId);
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex-1 flex flex-col items-center justify-center gap-6 px-4"
+      className="flex-1 flex flex-col gap-4 px-4"
     >
-      <div className="text-center">
-        <MessageCircle className="w-12 h-12 text-accent mx-auto mb-4" />
-        <h2 className="font-display text-2xl font-bold text-foreground">{t('game.discussion', language)}</h2>
-        <p className="text-muted-foreground text-sm mt-2">{t('game.discussHint', language)}</p>
+      <div className="text-center pt-4">
+        <MessageCircle className="w-10 h-10 text-accent mx-auto mb-2" />
+        <h2 className="font-display text-xl font-bold text-foreground">{t('game.speakingQueue', language)}</h2>
+        <p className="text-muted-foreground text-xs mt-1">{t('game.speakingHint', language)}</p>
       </div>
 
-      {room && (
-        <div className="w-full max-w-xs">
-          <CountdownTimer
-            seconds={room.discussion_time}
-            onComplete={isHost ? () => advancePhase('voting') : undefined}
-          />
+      {/* Progress indicator */}
+      <div className="flex items-center justify-center gap-1 py-2">
+        <span className="text-sm text-muted-foreground">
+          {spokenPlayers.length}/{activePlayers.length} {t('game.spoke', language)}
+        </span>
+      </div>
+
+      {/* Player list with spoke status */}
+      <div className="flex-1 space-y-2 overflow-y-auto">
+        {activePlayers.map((player, i) => {
+          const hasSpoken = spokenPlayers.includes(player.session_id);
+          const isMe = player.session_id === sessionId;
+
+          return (
+            <motion.div
+              key={player.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+                hasSpoken
+                  ? 'bg-muted/50 border-border opacity-60'
+                  : isMe
+                    ? 'bg-accent/10 border-accent/30'
+                    : 'bg-card border-border'
+              }`}
+            >
+              {hasSpoken ? (
+                <MicOff className="w-5 h-5 text-muted-foreground" />
+              ) : (
+                <Mic className="w-5 h-5 text-accent" />
+              )}
+              <span className={`flex-1 font-medium text-sm ${hasSpoken ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                {player.nickname}
+                {isMe && <span className="text-primary text-xs ml-1">(you)</span>}
+              </span>
+              {hasSpoken && (
+                <CheckCircle className="w-4 h-4 text-primary" />
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* My "I spoke" button */}
+      {!hasMeSpoken ? (
+        <motion.button
+          initial={{ scale: 0.95 }}
+          animate={{ scale: 1 }}
+          onClick={markSpoke}
+          className="w-full py-4 rounded-xl bg-accent text-accent-foreground font-display font-bold text-lg glow-purple hover:opacity-90 transition-all flex items-center justify-center gap-2"
+        >
+          <Mic className="w-5 h-5" />
+          {t('game.iSpoke', language)}
+        </motion.button>
+      ) : (
+        <div className="w-full py-4 rounded-xl bg-muted text-muted-foreground font-display font-medium text-center">
+          <MicOff className="w-5 h-5 inline mr-2" />
+          {t('game.youSpoke', language)}
         </div>
       )}
 
+      {/* Host advance button - show when all spoken or as override */}
       {isHost && (
         <button
           onClick={() => advancePhase('voting')}
-          className="px-6 py-3 rounded-xl bg-accent text-accent-foreground font-display font-bold glow-purple hover:opacity-90 transition-all flex items-center gap-2"
+          className={`w-full py-3 rounded-xl font-display font-bold transition-all flex items-center justify-center gap-2 ${
+            allSpoken
+              ? 'bg-primary text-primary-foreground glow-green'
+              : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 text-sm'
+          }`}
         >
           <Vote className="w-4 h-4" />
           {t('game.voting', language)}
@@ -244,7 +305,6 @@ function ResultsPhase() {
         <p className="font-display text-lg font-bold text-primary">{results.secret_word}</p>
       </div>
 
-      {/* Vote tally */}
       <div className="w-full max-w-xs space-y-1">
         {Object.entries(results.votes).map(([sid, count]) => {
           const player = players.find(p => p.session_id === sid);
@@ -294,7 +354,6 @@ export function GameScreen() {
 
   return (
     <div className="min-h-screen flex flex-col safe-area-top safe-area-bottom">
-      {/* Round indicator */}
       {room && (
         <div className="flex items-center justify-center gap-2 pt-4 pb-2">
           <span className="text-xs text-muted-foreground uppercase tracking-wider">
@@ -305,7 +364,7 @@ export function GameScreen() {
 
       <AnimatePresence mode="wait">
         {phase === 'reveal' && <RevealPhase key="reveal" />}
-        {phase === 'discussion' && <DiscussionPhase key="discussion" />}
+        {phase === 'discussion' && <SpeakingQueuePhase key="discussion" />}
         {phase === 'voting' && <VotingPhase key="voting" />}
         {phase === 'results' && <ResultsPhase key="results" />}
       </AnimatePresence>
