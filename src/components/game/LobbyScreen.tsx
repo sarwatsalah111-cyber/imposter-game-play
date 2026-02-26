@@ -1,9 +1,8 @@
 import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus } from 'lucide-react';
-import { useState, useRef, useCallback } from 'react';
-
+import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus, Users } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 function SettingControl({ label, value, onChange, min, max, step = 1, suffix = '' }: {
   label: string; value: number; onChange: (v: number) => void;
   min: number; max: number; step?: number; suffix?: string;
@@ -38,6 +37,20 @@ export function LobbyScreen() {
   const [showSettings, setShowSettings] = useState(false);
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
+  // Local state for settings to provide immediate UI feedback
+  const [localSettings, setLocalSettings] = useState<Record<string, number>>({});
+
+  // Sync local settings when room changes
+  useEffect(() => {
+    if (room) {
+      setLocalSettings(prev => ({
+        total_rounds: prev.total_rounds ?? room.total_rounds,
+        voting_time: prev.voting_time ?? room.voting_time,
+        max_players: prev.max_players ?? room.max_players,
+      }));
+    }
+  }, [room?.id]);
+
   if (!room) return null;
 
   const copyCode = () => {
@@ -49,6 +62,7 @@ export function LobbyScreen() {
   const canStart = isHost && players.filter(p => p.is_online).length >= room.min_players;
 
   const handleSettingChange = (key: string, value: number) => {
+    setLocalSettings(prev => ({ ...prev, [key]: value }));
     if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key]);
     debounceTimers.current[key] = setTimeout(() => {
       updateSettings({ [key]: value });
@@ -109,15 +123,21 @@ export function LobbyScreen() {
           </h3>
           <SettingControl
             label={t('lobby.rounds', language)}
-            value={room.total_rounds}
+            value={localSettings.total_rounds ?? room.total_rounds}
             onChange={(v) => handleSettingChange('total_rounds', v)}
             min={1} max={10}
           />
           <SettingControl
             label={t('lobby.votingTime', language)}
-            value={room.voting_time}
+            value={localSettings.voting_time ?? room.voting_time}
             onChange={(v) => handleSettingChange('voting_time', v)}
             min={15} max={120} step={5} suffix="s"
+          />
+          <SettingControl
+            label={t('lobby.maxPlayers', language)}
+            value={localSettings.max_players ?? room.max_players}
+            onChange={(v) => handleSettingChange('max_players', v)}
+            min={4} max={12}
           />
         </motion.div>
       )}
@@ -125,8 +145,9 @@ export function LobbyScreen() {
       {/* Settings summary (compact) */}
       <div className="flex flex-wrap gap-2 justify-center mb-6">
         {[
-          { label: t('lobby.rounds', language), value: room.total_rounds },
-          { label: t('lobby.votingTime', language), value: `${room.voting_time}s` },
+          { label: t('lobby.rounds', language), value: localSettings.total_rounds ?? room.total_rounds },
+          { label: t('lobby.votingTime', language), value: `${localSettings.voting_time ?? room.voting_time}s` },
+          { label: t('lobby.maxPlayers', language), value: localSettings.max_players ?? room.max_players },
         ].map((s, i) => (
           <div key={i} className="px-3 py-1.5 rounded-lg bg-secondary text-xs">
             <span className="text-muted-foreground">{s.label}: </span>
