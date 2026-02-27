@@ -5,6 +5,16 @@ import { useGameEngine } from '@/hooks/useGameEngine';
 import type { Language } from '@/lib/i18n';
 import type { Room, RoomPlayer, GamePhase, RevealData } from '@/lib/game-types';
 
+interface SpokeStatus {
+  spoken: string[];
+  spoke_counts: Record<string, number>;
+  player_order: string[];
+  current_turn_index: number;
+  current_turn_player: string | null;
+  total_turns: number;
+  total_rounds: number;
+}
+
 interface GameState {
   sessionId: string;
   nickname: string;
@@ -25,6 +35,7 @@ interface GameState {
     top_voted: string[];
   } | null;
   hasVoted: boolean;
+  spokeStatus: SpokeStatus | null;
   spokenPlayers: string[];
 }
 
@@ -52,28 +63,38 @@ export function useGame() {
   return ctx;
 }
 
+const INITIAL_STATE: GameState = {
+  sessionId: getSessionId(),
+  nickname: getNickname(),
+  language: 'EN',
+  room: null,
+  players: [],
+  reveal: null,
+  phase: 'lobby',
+  isHost: false,
+  error: null,
+  loading: false,
+  results: null,
+  hasVoted: false,
+  spokeStatus: null,
+  spokenPlayers: [],
+};
+
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const engine = useGameEngine();
-  const [state, setState] = useState<GameState>({
-    sessionId: getSessionId(),
-    nickname: getNickname(),
-    language: 'EN',
-    room: null,
-    players: [],
-    reveal: null,
-    phase: 'lobby',
-    isHost: false,
-    error: null,
-    loading: false,
-    results: null,
-    hasVoted: false,
-    spokenPlayers: [],
-  });
+  const [state, setState] = useState<GameState>(INITIAL_STATE);
   const heartbeatRef = useRef<NodeJS.Timeout>();
 
   const update = useCallback((partial: Partial<GameState>) => {
     setState(prev => ({ ...prev, ...partial }));
   }, []);
+
+  const refreshSpokeStatus = useCallback(async (roomId: string) => {
+    try {
+      const status = await engine.getSpokeStatus(roomId);
+      update({ spokeStatus: status as SpokeStatus });
+    } catch {}
+  }, [engine, update]);
 
   // Subscribe to realtime changes
   useEffect(() => {
@@ -126,11 +147,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }, (payload) => {
         const evt = payload.new as Record<string, unknown>;
         if (evt.event_type === 'spoke') {
-          setState(prev => {
-            const sid = evt.session_id as string;
-            if (prev.spokenPlayers.includes(sid)) return prev;
-            return { ...prev, spokenPlayers: [...prev.spokenPlayers, sid] };
-          });
+          // Refresh full spoke status on any spoke event
+          refreshSpokeStatus(roomId);
         }
       })
       .subscribe();
@@ -155,13 +173,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.phase, state.room?.id]);
 
-  // Reset spoken players when entering discussion phase & fetch current status
+  // Fetch spoke status when entering discussion phase
   useEffect(() => {
     if (state.phase === 'discussion' && state.room) {
-      update({ spokenPlayers: [] });
-      engine.getSpokeStatus(state.room.id)
-        .then(({ spoken }) => update({ spokenPlayers: spoken.filter(Boolean) as string[] }))
-        .catch(() => {});
+      update({ spokeStatus: null, spokenPlayers: [] });
+      refreshSpokeStatus(state.room.id);
     }
   }, [state.phase, state.room?.id]);
 
@@ -174,11 +190,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.phase, state.room?.id]);
 
+  const resetState = () => ({
+    room: null, players: [], phase: 'lobby' as GamePhase, reveal: null,
+    results: null, isHost: false, hasVoted: false, spokeStatus: null, spokenPlayers: [],
+  });
+
   const actions: GameActions = {
-    setNickname: (name) => {
-      saveNickname(name);
-      update({ nickname: name });
-    },
+    setNickname: (name) => { saveNickname(name); update({ nickname: name }); },
     setLanguage: (lang) => update({ language: lang }),
     createRoom: async () => {
       update({ loading: true, error: null });
@@ -197,11 +215,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       try {
         const { room } = await engine.joinRoom(state.sessionId, state.nickname, code);
         const r = room as unknown as Room;
-        update({
-          room: r, phase: r.phase,
-          isHost: r.host_session_id === state.sessionId,
-          loading: false,
-        });
+        update({ room: r, phase: r.phase, isHost: r.host_session_id === state.sessionId, loading: false });
         const { data: players } = await supabase.from('room_players').select('*').eq('room_id', r.id);
         if (players) update({ players: players as unknown as RoomPlayer[] });
       } catch (e: unknown) {
@@ -210,34 +224,30 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     updateSettings: async (settings) => {
       if (!state.room) return;
-      try {
-        await engine.updateSettings(state.sessionId, state.room.id, settings);
-      } catch (e: unknown) {
-        update({ error: (e as Error).message });
-      }
+      try { await engine.updateSettings(state.sessionId, state.room.id, settings); }
+      catch (e: unknown) { update({ error: (e as Error).message }); }
     },
     startGame: async () => {
       if (!state.room) return;
       update({ loading: true, error: null });
       try {
         await engine.startGame(state.sessionId, state.room.id);
-        update({ loading: false, reveal: null, results: null, hasVoted: false, spokenPlayers: [] });
+        update({ loading: false, reveal: null, results: null, hasVoted: false, spokeStatus: null, spokenPlayers: [] });
       } catch (e: unknown) {
         update({ error: (e as Error).message, loading: false });
       }
     },
     advancePhase: async (phase) => {
       if (!state.room) return;
-      try {
-        await engine.advancePhase(state.sessionId, state.room.id, phase);
-      } catch (e: unknown) {
-        update({ error: (e as Error).message });
-      }
+      try { await engine.advancePhase(state.sessionId, state.room.id, phase); }
+      catch (e: unknown) { update({ error: (e as Error).message }); }
     },
     markSpoke: async () => {
       if (!state.room) return;
       try {
         await engine.markSpoke(state.sessionId, state.room.id);
+        // Immediately refresh spoke status
+        refreshSpokeStatus(state.room.id);
       } catch (e: unknown) {
         update({ error: (e as Error).message });
       }
@@ -247,29 +257,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       try {
         await engine.vote(state.sessionId, state.room.id, targetSessionId);
         update({ hasVoted: true });
-      } catch (e: unknown) {
-        update({ error: (e as Error).message });
-      }
+      } catch (e: unknown) { update({ error: (e as Error).message }); }
     },
     leaveRoom: async () => {
-      if (state.room) {
-        await engine.leaveRoom(state.sessionId, state.room.id).catch(() => {});
-      }
-      update({ room: null, players: [], phase: 'lobby', reveal: null, results: null, isHost: false, hasVoted: false, spokenPlayers: [] });
+      if (state.room) { await engine.leaveRoom(state.sessionId, state.room.id).catch(() => {}); }
+      update(resetState());
     },
     finishGame: async () => {
       if (!state.room) return;
       try {
         await engine.finishGame(state.sessionId, state.room.id);
-        update({ room: null, players: [], phase: 'lobby', reveal: null, results: null, isHost: false, hasVoted: false, spokenPlayers: [] });
-      } catch (e: unknown) {
-        update({ error: (e as Error).message });
-      }
+        update(resetState());
+      } catch (e: unknown) { update({ error: (e as Error).message }); }
     },
     clearError: () => update({ error: null }),
-    goHome: () => {
-      update({ room: null, players: [], phase: 'lobby', reveal: null, results: null, isHost: false, hasVoted: false, spokenPlayers: [] });
-    },
+    goHome: () => update(resetState()),
   };
 
   return (

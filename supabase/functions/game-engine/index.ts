@@ -186,41 +186,73 @@ Deno.serve(async (req) => {
       case 'mark-spoke': {
         const { session_id, room_id } = params;
         const { data: room } = await supabase
-          .from('rooms').select('phase, current_round').eq('id', room_id).single();
+          .from('rooms').select('phase, current_round, total_rounds, host_session_id').eq('id', room_id).single();
         if (!room || room.phase !== 'discussion') return json({ error: 'Not in discussion phase' }, 400);
 
-        // Check not already marked
-        const { data: existing } = await supabase
-          .from('room_events').select('id')
+        // Get all spoke events for this game round
+        const { data: allSpokeEvents } = await supabase
+          .from('room_events').select('session_id, data')
           .eq('room_id', room_id)
-          .eq('event_type', 'spoke')
-          .eq('session_id', session_id)
-          .maybeSingle();
-        // Use round data to filter - check if spoke this round
-        const { data: spokeEvents } = await supabase
-          .from('room_events').select('id, data')
-          .eq('room_id', room_id)
-          .eq('event_type', 'spoke')
-          .eq('session_id', session_id);
-        
-        const alreadySpoke = (spokeEvents || []).some(e => {
+          .eq('event_type', 'spoke');
+
+        const roundSpokeEvents = (allSpokeEvents || []).filter(e => {
           const d = e.data as Record<string, unknown> | null;
-          return d && d.round === room.current_round;
+          return d && d.game_round === room.current_round;
         });
-        if (alreadySpoke) return json({ error: 'Already marked as spoke' }, 400);
+
+        // Count how many times this player has spoken this game round
+        const myTurnCount = roundSpokeEvents.filter(e => e.session_id === session_id).length;
+        if (myTurnCount >= room.total_rounds) {
+          return json({ error: 'You have used all your speaking turns' }, 400);
+        }
+
+        // Get active players to determine turn order
+        const { data: activePlayers } = await supabase
+          .from('room_players').select('session_id')
+          .eq('room_id', room_id).eq('is_online', true).eq('is_eliminated', false)
+          .order('joined_at');
+        
+        if (!activePlayers || activePlayers.length === 0) return json({ error: 'No active players' }, 400);
+
+        const playerOrder = activePlayers.map(p => p.session_id);
+        const totalTurns = playerOrder.length * room.total_rounds;
+        const currentTurnIndex = roundSpokeEvents.length;
+
+        // Verify it's this player's turn
+        const expectedPlayer = playerOrder[currentTurnIndex % playerOrder.length];
+        if (session_id !== expectedPlayer) {
+          return json({ error: 'Not your turn' }, 400);
+        }
+
+        const turnNumber = Math.floor(currentTurnIndex / playerOrder.length) + 1;
 
         await supabase.from('room_events').insert({
           room_id, event_type: 'spoke', session_id,
-          data: { round: room.current_round },
+          data: { game_round: room.current_round, turn: turnNumber, turn_index: currentTurnIndex },
         });
 
-        return json({ success: true });
+        // Check if all turns are now complete (after this insertion)
+        const newTotalSpoken = currentTurnIndex + 1;
+        if (newTotalSpoken >= totalTurns) {
+          // Auto-advance to voting
+          await supabase.from('rooms').update({
+            phase: 'voting',
+            updated_at: new Date().toISOString(),
+          }).eq('id', room_id);
+
+          await supabase.from('room_events').insert({
+            room_id, event_type: 'phase_changed', session_id: room.host_session_id,
+            data: { from: 'discussion', to: 'voting', auto: true },
+          });
+        }
+
+        return json({ success: true, turn_index: currentTurnIndex, total_turns: totalTurns, auto_advanced: newTotalSpoken >= totalTurns });
       }
 
       case 'get-spoke-status': {
         const { room_id } = params;
         const { data: room } = await supabase
-          .from('rooms').select('current_round').eq('id', room_id).single();
+          .from('rooms').select('current_round, total_rounds').eq('id', room_id).single();
         if (!room) return json({ error: 'Room not found' }, 404);
 
         const { data: events } = await supabase
@@ -228,14 +260,39 @@ Deno.serve(async (req) => {
           .eq('room_id', room_id)
           .eq('event_type', 'spoke');
 
-        const spoken = (events || [])
-          .filter(e => {
-            const d = e.data as Record<string, unknown> | null;
-            return d && d.round === room.current_round;
-          })
-          .map(e => e.session_id);
+        const roundEvents = (events || []).filter(e => {
+          const d = e.data as Record<string, unknown> | null;
+          return d && d.game_round === room.current_round;
+        });
 
-        return json({ spoken });
+        // Get active players for turn order
+        const { data: activePlayers } = await supabase
+          .from('room_players').select('session_id')
+          .eq('room_id', room_id).eq('is_online', true).eq('is_eliminated', false)
+          .order('joined_at');
+
+        const playerOrder = (activePlayers || []).map(p => p.session_id);
+        const totalTurns = playerOrder.length * room.total_rounds;
+        const currentTurnIndex = roundEvents.length;
+        const currentTurnPlayer = currentTurnIndex < totalTurns ? playerOrder[currentTurnIndex % playerOrder.length] : null;
+
+        // Build per-player spoke counts
+        const spokeCounts: Record<string, number> = {};
+        roundEvents.forEach(e => {
+          if (e.session_id) {
+            spokeCounts[e.session_id] = (spokeCounts[e.session_id] || 0) + 1;
+          }
+        });
+
+        return json({
+          spoken: roundEvents.map(e => e.session_id).filter(Boolean),
+          spoke_counts: spokeCounts,
+          player_order: playerOrder,
+          current_turn_index: currentTurnIndex,
+          current_turn_player: currentTurnPlayer,
+          total_turns: totalTurns,
+          total_rounds: room.total_rounds,
+        });
       }
 
       case 'advance-phase': {

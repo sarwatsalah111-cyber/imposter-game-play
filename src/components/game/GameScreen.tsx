@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Eye, EyeOff, MessageCircle, Vote, Trophy, Timer, ArrowRight, Home, Crown, CheckCircle, Target, Mic, MicOff } from 'lucide-react';
+import { Eye, EyeOff, MessageCircle, Vote, Trophy, Timer, ArrowRight, Home, CheckCircle, Target, Mic, MicOff } from 'lucide-react';
 
 function CountdownTimer({ seconds, onComplete }: { seconds: number; onComplete?: () => void }) {
   const [timeLeft, setTimeLeft] = useState(seconds);
@@ -57,7 +57,7 @@ function RevealPhase() {
     >
       <div className="text-center">
         <p className="text-muted-foreground text-sm mb-2 uppercase tracking-wider">
-          {t('game.round', language)} {room?.current_round}/{room?.total_rounds}
+          {t('game.round', language)} {room?.current_round}
         </p>
         <h2 className="font-display text-2xl font-bold text-foreground mb-1">{t('game.reveal', language)}</h2>
       </div>
@@ -113,10 +113,19 @@ function RevealPhase() {
 }
 
 function SpeakingQueuePhase() {
-  const { room, players, language, sessionId, isHost, advancePhase, markSpoke, spokenPlayers } = useGame();
+  const { room, players, language, sessionId, isHost, advancePhase, markSpoke, spokeStatus } = useGame();
   const activePlayers = players.filter(p => p.is_online && !p.is_eliminated);
-  const allSpoken = activePlayers.length > 0 && activePlayers.every(p => spokenPlayers.includes(p.session_id));
-  const hasMeSpoken = spokenPlayers.includes(sessionId);
+
+  const playerOrder = spokeStatus?.player_order || activePlayers.map(p => p.session_id);
+  const currentTurnIndex = spokeStatus?.current_turn_index ?? 0;
+  const totalTurns = spokeStatus?.total_turns ?? (playerOrder.length * (room?.total_rounds || 1));
+  const currentTurnPlayer = spokeStatus?.current_turn_player || null;
+  const spokeCounts = spokeStatus?.spoke_counts || {};
+  const totalRounds = spokeStatus?.total_rounds || room?.total_rounds || 1;
+  const allDone = currentTurnIndex >= totalTurns;
+
+  const currentSpeakingRound = Math.floor(currentTurnIndex / playerOrder.length) + 1;
+  const isMyTurn = currentTurnPlayer === sessionId;
 
   return (
     <motion.div
@@ -130,80 +139,113 @@ function SpeakingQueuePhase() {
         <p className="text-muted-foreground text-xs mt-1">{t('game.speakingHint', language)}</p>
       </div>
 
-      {/* Progress indicator */}
-      <div className="flex items-center justify-center gap-1 py-2">
-        <span className="text-sm text-muted-foreground">
-          {spokenPlayers.length}/{activePlayers.length} {t('game.spoke', language)}
+      {/* Round & turn progress */}
+      <div className="flex flex-col items-center gap-1 py-2">
+        <span className="text-sm font-medium text-foreground">
+          {t('game.speakingRound', language)} {Math.min(currentSpeakingRound, totalRounds)}/{totalRounds}
+        </span>
+        <div className="w-full max-w-xs h-2 bg-secondary rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-accent rounded-full"
+            animate={{ width: `${(currentTurnIndex / totalTurns) * 100}%` }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {currentTurnIndex}/{totalTurns} {t('game.turnsComplete', language)}
         </span>
       </div>
 
-      {/* Player list with spoke status */}
+      {/* Player queue list */}
       <div className="flex-1 space-y-2 overflow-y-auto">
-        {activePlayers.map((player, i) => {
-          const hasSpoken = spokenPlayers.includes(player.session_id);
-          const isMe = player.session_id === sessionId;
+        {playerOrder.map((sid, i) => {
+          const player = activePlayers.find(p => p.session_id === sid);
+          if (!player) return null;
+          const count = spokeCounts[sid] || 0;
+          const isDone = count >= totalRounds;
+          const isCurrent = sid === currentTurnPlayer;
+          const isMe = sid === sessionId;
 
           return (
             <motion.div
-              key={player.id}
+              key={sid}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
-                hasSpoken
-                  ? 'bg-muted/50 border-border opacity-60'
-                  : isMe
-                    ? 'bg-accent/10 border-accent/30'
+                isCurrent
+                  ? 'bg-accent/15 border-accent/50 ring-2 ring-accent/30'
+                  : isDone
+                    ? 'bg-muted/50 border-border opacity-50'
                     : 'bg-card border-border'
               }`}
             >
-              {hasSpoken ? (
+              {isCurrent ? (
+                <Mic className="w-5 h-5 text-accent animate-pulse" />
+              ) : isDone ? (
                 <MicOff className="w-5 h-5 text-muted-foreground" />
               ) : (
-                <Mic className="w-5 h-5 text-accent" />
+                <Mic className="w-5 h-5 text-muted-foreground" />
               )}
-              <span className={`flex-1 font-medium text-sm ${hasSpoken ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+              <span className={`flex-1 font-medium text-sm ${
+                isCurrent ? 'text-accent font-bold' : isDone ? 'text-muted-foreground' : 'text-foreground'
+              }`}>
                 {player.nickname}
-                {isMe && <span className="text-primary text-xs ml-1">(you)</span>}
+                {isMe && <span className="text-primary text-xs ml-1">({t('game.you', language)})</span>}
               </span>
-              {hasSpoken && (
-                <CheckCircle className="w-4 h-4 text-primary" />
-              )}
+              {/* Turn counter dots */}
+              <div className="flex gap-1">
+                {Array.from({ length: totalRounds }).map((_, j) => (
+                  <div
+                    key={j}
+                    className={`w-2 h-2 rounded-full ${
+                      j < count ? 'bg-primary' : 'bg-secondary'
+                    }`}
+                  />
+                ))}
+              </div>
+              {isDone && <CheckCircle className="w-4 h-4 text-primary" />}
             </motion.div>
           );
         })}
       </div>
 
-      {/* My "I spoke" button */}
-      {!hasMeSpoken ? (
-        <motion.button
-          initial={{ scale: 0.95 }}
-          animate={{ scale: 1 }}
-          onClick={markSpoke}
-          className="w-full py-4 rounded-xl bg-accent text-accent-foreground font-display font-bold text-lg glow-purple hover:opacity-90 transition-all flex items-center justify-center gap-2"
-        >
-          <Mic className="w-5 h-5" />
-          {t('game.iSpoke', language)}
-        </motion.button>
+      {/* Action area */}
+      {!allDone ? (
+        isMyTurn ? (
+          <motion.button
+            key="speak-btn"
+            initial={{ scale: 0.95 }}
+            animate={{ scale: [1, 1.03, 1] }}
+            transition={{ repeat: Infinity, duration: 1.5 }}
+            onClick={markSpoke}
+            className="w-full py-4 rounded-xl bg-accent text-accent-foreground font-display font-bold text-lg glow-purple hover:opacity-90 transition-all flex items-center justify-center gap-2"
+          >
+            <Mic className="w-5 h-5" />
+            {t('game.iSpoke', language)}
+          </motion.button>
+        ) : (
+          <div className="w-full py-4 rounded-xl bg-muted text-muted-foreground font-display font-medium text-center text-sm">
+            {currentTurnPlayer && (() => {
+              const cp = activePlayers.find(p => p.session_id === currentTurnPlayer);
+              return cp ? `${cp.nickname} ${t('game.isSpeaking', language)}...` : t('game.waitingTurn', language);
+            })()}
+          </div>
+        )
       ) : (
-        <div className="w-full py-4 rounded-xl bg-muted text-muted-foreground font-display font-medium text-center">
-          <MicOff className="w-5 h-5 inline mr-2" />
-          {t('game.youSpoke', language)}
+        <div className="w-full py-4 rounded-xl bg-primary/10 border border-primary/30 text-primary font-display font-medium text-center text-sm animate-pulse">
+          {t('game.allSpoken', language)}
         </div>
       )}
 
-      {/* Host advance button - show when all spoken or as override */}
-      {isHost && (
+      {/* Host override */}
+      {isHost && !allDone && (
         <button
           onClick={() => advancePhase('voting')}
-          className={`w-full py-3 rounded-xl font-display font-bold transition-all flex items-center justify-center gap-2 ${
-            allSpoken
-              ? 'bg-primary text-primary-foreground glow-green'
-              : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 text-sm'
-          }`}
+          className="w-full py-3 rounded-xl bg-secondary text-secondary-foreground font-display font-medium hover:bg-secondary/80 transition-all text-sm flex items-center justify-center gap-2"
         >
           <Vote className="w-4 h-4" />
-          {t('game.voting', language)}
+          {t('game.skipToVoting', language)}
           <ArrowRight className="w-4 h-4" />
         </button>
       )}
@@ -284,7 +326,6 @@ function ResultsPhase() {
   if (!results) return <div className="flex-1 flex items-center justify-center"><div className="text-muted-foreground animate-pulse">Loading...</div></div>;
 
   const imposter = players.find(p => p.session_id === results.imposter_session_id);
-  const isLastRound = room && room.current_round >= room.total_rounds;
 
   return (
     <motion.div
@@ -324,20 +365,18 @@ function ResultsPhase() {
 
       {isHost && (
         <div className="w-full max-w-xs flex flex-col gap-2">
-          {!isLastRound && (
-            <button
-              onClick={startGame}
-              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-display font-bold glow-green hover:opacity-90 transition-all flex items-center justify-center gap-2"
-            >
-              {t('game.nextRound', language)} <ArrowRight className="w-4 h-4" />
-            </button>
-          )}
           <button
-            onClick={isLastRound ? finishGame : goHome}
+            onClick={startGame}
+            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-display font-bold glow-green hover:opacity-90 transition-all flex items-center justify-center gap-2"
+          >
+            {t('game.nextRound', language)} <ArrowRight className="w-4 h-4" />
+          </button>
+          <button
+            onClick={finishGame}
             className="w-full py-3 rounded-xl bg-secondary text-secondary-foreground font-display font-medium hover:bg-secondary/80 transition-all flex items-center justify-center gap-2"
           >
             <Home className="w-4 h-4" />
-            {isLastRound ? t('game.finish', language) : t('game.backHome', language)}
+            {t('game.finish', language)}
           </button>
         </div>
       )}
@@ -357,7 +396,7 @@ export function GameScreen() {
       {room && (
         <div className="flex items-center justify-center gap-2 pt-4 pb-2">
           <span className="text-xs text-muted-foreground uppercase tracking-wider">
-            {t('game.round', language)} {room.current_round}/{room.total_rounds}
+            {t('game.round', language)} {room.current_round}
           </span>
         </div>
       )}
