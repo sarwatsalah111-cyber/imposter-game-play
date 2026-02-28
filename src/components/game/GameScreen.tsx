@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Eye, EyeOff, MessageCircle, Vote, Trophy, Timer, ArrowRight, Home, CheckCircle, Target, Mic, MicOff } from 'lucide-react';
+import { Eye, EyeOff, MessageCircle, Vote, Trophy, Timer, ArrowRight, Home, CheckCircle, Target, Mic, MicOff, Skull, Star } from 'lucide-react';
 
 function CountdownTimer({ seconds, onComplete }: { seconds: number; onComplete?: () => void }) {
   const [timeLeft, setTimeLeft] = useState(seconds);
@@ -29,16 +29,16 @@ function CountdownTimer({ seconds, onComplete }: { seconds: number; onComplete?:
   const isLow = timeLeft <= 10;
 
   return (
-    <div className="flex items-center gap-2">
-      <Timer className={`w-4 h-4 ${isLow ? 'text-destructive animate-pulse' : 'text-primary'}`} />
-      <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+    <div className="flex items-center gap-2 spooky-inner border border-border rounded-lg p-2">
+      <Timer className={`w-4 h-4 ${isLow ? 'text-destructive animate-pulse' : 'text-accent'}`} />
+      <div className="flex-1 h-2 rounded-full overflow-hidden bg-muted">
         <motion.div
-          className={`h-full rounded-full ${isLow ? 'bg-destructive' : 'bg-primary'}`}
+          className={`h-full rounded-full ${isLow ? 'bg-destructive' : 'bg-accent'}`}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.5 }}
         />
       </div>
-      <span className={`font-display text-sm font-bold min-w-[50px] text-right ${isLow ? 'text-destructive' : 'text-foreground'}`}>
+      <span className={`font-display text-sm font-bold min-w-[50px] text-right ${isLow ? 'text-destructive' : 'text-accent'}`}>
         {mins}:{secs.toString().padStart(2, '0')}
       </span>
     </div>
@@ -56,38 +56,38 @@ function RevealPhase() {
       className="flex-1 flex flex-col items-center justify-center gap-6 px-4"
     >
       <div className="text-center">
-        <p className="text-muted-foreground text-sm mb-2 uppercase tracking-wider">
+        <p className="text-muted-foreground text-xs mb-2 uppercase tracking-widest font-display">
           {t('game.round', language)} {room?.current_round}
         </p>
-        <h2 className="font-display text-2xl font-bold text-foreground mb-1">{t('game.reveal', language)}</h2>
+        <h2 className="font-display text-2xl font-bold text-foreground uppercase tracking-wider text-glow-purple">{t('game.reveal', language)}</h2>
       </div>
 
       <motion.div
         initial={{ rotateY: 180 }}
         animate={{ rotateY: 0 }}
         transition={{ duration: 0.6, type: 'spring' }}
-        className={`w-full max-w-xs p-8 rounded-2xl border-2 text-center ${
-          isImposter
-            ? 'bg-destructive/10 border-destructive/40 glow-red'
-            : 'bg-primary/10 border-primary/40 glow-green'
+        className={`w-full max-w-xs p-8 spooky-panel spider-corner text-center ${
+          isImposter ? 'glow-red' : 'glow-purple'
         }`}
       >
         {isImposter ? (
           <>
-            <EyeOff className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <p className="font-display text-xl font-bold text-destructive">{t('game.youAreImposter', language)}</p>
+            <Skull className="w-14 h-14 text-destructive mx-auto mb-4" />
+            <p className="font-display text-lg font-bold text-destructive uppercase tracking-wider">{t('game.youAreImposter', language)}</p>
           </>
         ) : (
           <>
-            <Eye className="w-12 h-12 text-primary mx-auto mb-4" />
-            <p className="font-display text-lg font-bold text-foreground mb-3">{t('game.youAreNormal', language)}</p>
-            <p className="text-muted-foreground text-xs mb-1">{t('game.secretWord', language)}</p>
-            <p className="font-display text-3xl font-bold text-primary text-glow-green">{reveal?.word}</p>
+            <Eye className="w-14 h-14 text-primary mx-auto mb-4" />
+            <p className="font-display text-base font-bold text-foreground mb-4 uppercase tracking-wider">{t('game.youAreNormal', language)}</p>
+            <div className="spooky-inner border border-border rounded-lg p-4">
+              <p className="text-muted-foreground text-xs mb-1 font-display uppercase tracking-widest">{t('game.secretWord', language)}</p>
+              <p className="font-display text-2xl font-bold text-accent text-glow-gold">{reveal?.word}</p>
+            </div>
           </>
         )}
       </motion.div>
 
-      <p className="text-muted-foreground text-xs animate-pulse">{t('game.memorize', language)}</p>
+      <p className="text-muted-foreground text-xs animate-pulse italic">{t('game.memorize', language)}</p>
 
       {isHost && room && (
         <div className="w-full max-w-xs">
@@ -101,7 +101,7 @@ function RevealPhase() {
       {isHost && (
         <button
           onClick={() => advancePhase('discussion')}
-          className="px-6 py-3 rounded-xl bg-primary text-primary-foreground font-display font-bold glow-green hover:opacity-90 transition-all flex items-center gap-2"
+          className="px-6 py-3 spooky-btn text-sm glow-purple flex items-center gap-2"
         >
           <MessageCircle className="w-4 h-4" />
           {t('game.speakingQueue', language)}
@@ -134,19 +134,19 @@ function SpeakingQueuePhase() {
       className="flex-1 flex flex-col gap-4 px-4"
     >
       <div className="text-center pt-4">
-        <MessageCircle className="w-10 h-10 text-accent mx-auto mb-2" />
-        <h2 className="font-display text-xl font-bold text-foreground">{t('game.speakingQueue', language)}</h2>
-        <p className="text-muted-foreground text-xs mt-1">{t('game.speakingHint', language)}</p>
+        <MessageCircle className="w-10 h-10 text-primary mx-auto mb-2" />
+        <h2 className="font-display text-xl font-bold text-foreground uppercase tracking-wider text-glow-purple">{t('game.speakingQueue', language)}</h2>
+        <p className="text-muted-foreground text-xs mt-1 italic">{t('game.speakingHint', language)}</p>
       </div>
 
       {/* Round & turn progress */}
-      <div className="flex flex-col items-center gap-1 py-2">
-        <span className="text-sm font-medium text-foreground">
+      <div className="spooky-panel p-3 flex flex-col items-center gap-2">
+        <span className="text-sm font-display font-bold text-accent uppercase tracking-wider">
           {t('game.speakingRound', language)} {Math.min(currentSpeakingRound, totalRounds)}/{totalRounds}
         </span>
-        <div className="w-full max-w-xs h-2 bg-secondary rounded-full overflow-hidden">
+        <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-accent rounded-full"
+            className="h-full bg-primary rounded-full"
             animate={{ width: `${(currentTurnIndex / totalTurns) * 100}%` }}
             transition={{ duration: 0.3 }}
           />
@@ -172,39 +172,39 @@ function SpeakingQueuePhase() {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-all ${
                 isCurrent
-                  ? 'bg-accent/15 border-accent/50 ring-2 ring-accent/30'
+                  ? 'spooky-panel border-primary/60 shadow-[0_0_16px_hsl(280_75%_55%/0.25)]'
                   : isDone
-                    ? 'bg-muted/50 border-border opacity-50'
-                    : 'bg-card border-border'
+                    ? 'spooky-inner border-border opacity-50'
+                    : 'spooky-inner border-border'
               }`}
             >
               {isCurrent ? (
-                <Mic className="w-5 h-5 text-accent animate-pulse" />
+                <Mic className="w-5 h-5 text-primary animate-pulse" />
               ) : isDone ? (
                 <MicOff className="w-5 h-5 text-muted-foreground" />
               ) : (
                 <Mic className="w-5 h-5 text-muted-foreground" />
               )}
               <span className={`flex-1 font-medium text-sm ${
-                isCurrent ? 'text-accent font-bold' : isDone ? 'text-muted-foreground' : 'text-foreground'
+                isCurrent ? 'text-primary font-bold' : isDone ? 'text-muted-foreground' : 'text-foreground'
               }`}>
                 {player.nickname}
-                {isMe && <span className="text-primary text-xs ml-1">({t('game.you', language)})</span>}
+                {isMe && <span className="text-accent text-xs ml-1">({t('game.you', language)})</span>}
               </span>
               {/* Turn counter dots */}
               <div className="flex gap-1">
                 {Array.from({ length: totalRounds }).map((_, j) => (
                   <div
                     key={j}
-                    className={`w-2 h-2 rounded-full ${
-                      j < count ? 'bg-primary' : 'bg-secondary'
+                    className={`w-2.5 h-2.5 rounded-full border ${
+                      j < count ? 'bg-accent border-accent' : 'bg-muted border-border'
                     }`}
                   />
                 ))}
               </div>
-              {isDone && <CheckCircle className="w-4 h-4 text-primary" />}
+              {isDone && <CheckCircle className="w-4 h-4 text-accent" />}
             </motion.div>
           );
         })}
@@ -219,13 +219,13 @@ function SpeakingQueuePhase() {
             animate={{ scale: [1, 1.03, 1] }}
             transition={{ repeat: Infinity, duration: 1.5 }}
             onClick={markSpoke}
-            className="w-full py-4 rounded-xl bg-accent text-accent-foreground font-display font-bold text-lg glow-purple hover:opacity-90 transition-all flex items-center justify-center gap-2"
+            className="w-full py-4 spooky-btn text-base glow-purple flex items-center justify-center gap-2"
           >
             <Mic className="w-5 h-5" />
             {t('game.iSpoke', language)}
           </motion.button>
         ) : (
-          <div className="w-full py-4 rounded-xl bg-muted text-muted-foreground font-display font-medium text-center text-sm">
+          <div className="w-full py-4 rounded-xl spooky-inner border border-border text-muted-foreground font-display font-medium text-center text-sm uppercase tracking-wider">
             {currentTurnPlayer && (() => {
               const cp = activePlayers.find(p => p.session_id === currentTurnPlayer);
               return cp ? `${cp.nickname} ${t('game.isSpeaking', language)}...` : t('game.waitingTurn', language);
@@ -233,7 +233,7 @@ function SpeakingQueuePhase() {
           </div>
         )
       ) : (
-        <div className="w-full py-4 rounded-xl bg-primary/10 border border-primary/30 text-primary font-display font-medium text-center text-sm animate-pulse">
+        <div className="w-full py-4 spooky-panel text-accent font-display font-medium text-center text-sm uppercase tracking-wider animate-pulse">
           {t('game.allSpoken', language)}
         </div>
       )}
@@ -242,7 +242,7 @@ function SpeakingQueuePhase() {
       {isHost && !allDone && (
         <button
           onClick={() => advancePhase('voting')}
-          className="w-full py-3 rounded-xl bg-secondary text-secondary-foreground font-display font-medium hover:bg-secondary/80 transition-all text-sm flex items-center justify-center gap-2"
+          className="w-full py-3 spooky-btn-gold spooky-btn text-sm flex items-center justify-center gap-2"
         >
           <Vote className="w-4 h-4" />
           {t('game.skipToVoting', language)}
@@ -264,9 +264,9 @@ function VotingPhase() {
       className="flex-1 flex flex-col gap-4 px-4"
     >
       <div className="text-center pt-4">
-        <Vote className="w-10 h-10 text-neon-orange mx-auto mb-2" />
-        <h2 className="font-display text-xl font-bold text-foreground">{t('game.voting', language)}</h2>
-        <p className="text-muted-foreground text-xs mt-1">{t('game.voteHint', language)}</p>
+        <Vote className="w-10 h-10 text-accent mx-auto mb-2" />
+        <h2 className="font-display text-xl font-bold text-foreground uppercase tracking-wider text-glow-gold">{t('game.voting', language)}</h2>
+        <p className="text-muted-foreground text-xs mt-1 italic">{t('game.voteHint', language)}</p>
       </div>
 
       {room && (
@@ -284,10 +284,10 @@ function VotingPhase() {
           animate={{ scale: 1 }}
           className="flex-1 flex items-center justify-center"
         >
-          <div className="text-center">
-            <CheckCircle className="w-16 h-16 text-primary mx-auto mb-3" />
-            <p className="font-display text-lg font-bold text-primary">{t('game.voted', language)}</p>
-            <p className="text-muted-foreground text-sm mt-1">{t('game.waitingVotes', language)}</p>
+          <div className="text-center spooky-panel p-8">
+            <CheckCircle className="w-16 h-16 text-accent mx-auto mb-3" />
+            <p className="font-display text-lg font-bold text-accent uppercase tracking-wider">{t('game.voted', language)}</p>
+            <p className="text-muted-foreground text-sm mt-1 italic">{t('game.waitingVotes', language)}</p>
           </div>
         </motion.div>
       ) : (
@@ -299,7 +299,7 @@ function VotingPhase() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
               onClick={() => vote(player.session_id)}
-              className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-card border border-border hover:border-destructive/50 hover:bg-destructive/5 transition-all active:scale-[0.98]"
+              className="w-full flex items-center gap-3 px-4 py-4 rounded-lg spooky-inner border border-border hover:border-destructive/50 hover:shadow-[0_0_12px_hsl(0_85%_55%/0.15)] transition-all active:scale-[0.98]"
             >
               <Target className="w-5 h-5 text-muted-foreground" />
               <span className="flex-1 font-medium text-foreground text-left">{player.nickname}</span>
@@ -312,9 +312,10 @@ function VotingPhase() {
       {isHost && (
         <button
           onClick={() => advancePhase('results')}
-          className="w-full py-3 rounded-xl bg-secondary text-secondary-foreground font-display font-medium hover:bg-secondary/80 transition-all text-sm"
+          className="w-full py-3 spooky-btn text-sm flex items-center justify-center gap-2"
         >
-          {t('game.results', language)} →
+          {t('game.results', language)}
+          <ArrowRight className="w-4 h-4" />
         </button>
       )}
     </motion.div>
@@ -323,7 +324,7 @@ function VotingPhase() {
 
 function ResultsPhase() {
   const { results, players, room, language, isHost, startGame, goHome, finishGame } = useGame();
-  if (!results) return <div className="flex-1 flex items-center justify-center"><div className="text-muted-foreground animate-pulse">Loading...</div></div>;
+  if (!results) return <div className="flex-1 flex items-center justify-center"><div className="text-muted-foreground animate-pulse font-display uppercase tracking-wider">Loading...</div></div>;
 
   const imposter = players.find(p => p.session_id === results.imposter_session_id);
 
@@ -333,31 +334,37 @@ function ResultsPhase() {
       animate={{ opacity: 1 }}
       className="flex-1 flex flex-col items-center justify-center gap-6 px-4"
     >
-      <Trophy className={`w-14 h-14 ${results.caught ? 'text-primary' : 'text-destructive'}`} />
+      <div className="flex gap-1">
+        {[1, 2, 3].map(i => (
+          <Star key={i} className={`w-8 h-8 ${results.caught && i <= 2 ? 'text-accent fill-accent' : !results.caught && i === 2 ? 'text-accent fill-accent' : 'text-muted-foreground'}`} />
+        ))}
+      </div>
 
-      <h2 className="font-display text-2xl font-bold text-foreground text-center">
+      <h2 className="font-display text-xl font-bold text-foreground text-center uppercase tracking-wider text-glow-purple">
         {results.caught ? t('game.imposterCaught', language) : results.isTie ? t('game.tie', language) : t('game.imposterWins', language)}
       </h2>
 
-      <div className="p-6 rounded-2xl bg-card border border-border text-center w-full max-w-xs">
-        <p className="text-muted-foreground text-xs uppercase tracking-wider mb-2">{t('game.imposterWas', language)}</p>
-        <p className="font-display text-xl font-bold text-destructive">{imposter?.nickname || '???'}</p>
-        <p className="text-muted-foreground text-xs mt-3">{t('game.secretWord', language)}</p>
-        <p className="font-display text-lg font-bold text-primary">{results.secret_word}</p>
+      <div className="spooky-panel spider-corner p-6 text-center w-full max-w-xs scratched-texture">
+        <p className="text-muted-foreground text-xs uppercase tracking-widest mb-2 font-display">{t('game.imposterWas', language)}</p>
+        <p className="font-display text-xl font-bold text-destructive uppercase">{imposter?.nickname || '???'}</p>
+        <div className="mt-4 spooky-inner border border-border rounded-lg p-3">
+          <p className="text-muted-foreground text-xs font-display uppercase tracking-widest">{t('game.secretWord', language)}</p>
+          <p className="font-display text-lg font-bold text-accent text-glow-gold mt-1">{results.secret_word}</p>
+        </div>
       </div>
 
-      <div className="w-full max-w-xs space-y-1">
+      <div className="w-full max-w-xs space-y-1.5">
         {Object.entries(results.votes).map(([sid, count]) => {
           const player = players.find(p => p.session_id === sid);
           return (
-            <div key={sid} className="flex items-center gap-2 text-sm">
-              <span className="flex-1 text-foreground">{player?.nickname || sid.slice(0, 8)}</span>
-              <div className="flex gap-0.5">
+            <div key={sid} className="flex items-center gap-2 text-sm spooky-inner border border-border rounded-lg px-3 py-2">
+              <span className="flex-1 text-foreground font-medium">{player?.nickname || sid.slice(0, 8)}</span>
+              <div className="flex gap-1">
                 {Array.from({ length: count }).map((_, i) => (
-                  <div key={i} className="w-2 h-2 rounded-full bg-neon-orange" />
+                  <div key={i} className="w-2.5 h-2.5 rounded-full bg-accent" />
                 ))}
               </div>
-              <span className="text-muted-foreground text-xs w-6 text-right">{count}</span>
+              <span className="text-accent text-xs w-6 text-right font-display font-bold">{count}</span>
             </div>
           );
         })}
@@ -367,13 +374,13 @@ function ResultsPhase() {
         <div className="w-full max-w-xs flex flex-col gap-2">
           <button
             onClick={startGame}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-display font-bold glow-green hover:opacity-90 transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 spooky-btn-gold spooky-btn text-sm glow-gold flex items-center justify-center gap-2"
           >
             {t('game.nextRound', language)} <ArrowRight className="w-4 h-4" />
           </button>
           <button
             onClick={finishGame}
-            className="w-full py-3 rounded-xl bg-secondary text-secondary-foreground font-display font-medium hover:bg-secondary/80 transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 spooky-btn text-sm flex items-center justify-center gap-2"
           >
             <Home className="w-4 h-4" />
             {t('game.finish', language)}
@@ -382,7 +389,7 @@ function ResultsPhase() {
       )}
 
       {!isHost && (
-        <p className="text-muted-foreground text-sm animate-pulse-glow">{t('lobby.waiting', language)}</p>
+        <p className="text-muted-foreground text-sm animate-pulse font-display uppercase tracking-wider">{t('lobby.waiting', language)}</p>
       )}
     </motion.div>
   );
@@ -392,21 +399,27 @@ export function GameScreen() {
   const { phase, room, language } = useGame();
 
   return (
-    <div className="min-h-screen flex flex-col safe-area-top safe-area-bottom">
-      {room && (
-        <div className="flex items-center justify-center gap-2 pt-4 pb-2">
-          <span className="text-xs text-muted-foreground uppercase tracking-wider">
-            {t('game.round', language)} {room.current_round}
-          </span>
-        </div>
-      )}
+    <div className="min-h-screen flex flex-col safe-area-top safe-area-bottom relative">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-vignette" />
+      </div>
 
-      <AnimatePresence mode="wait">
-        {phase === 'reveal' && <RevealPhase key="reveal" />}
-        {phase === 'discussion' && <SpeakingQueuePhase key="discussion" />}
-        {phase === 'voting' && <VotingPhase key="voting" />}
-        {phase === 'results' && <ResultsPhase key="results" />}
-      </AnimatePresence>
+      <div className="relative z-10 flex flex-col flex-1">
+        {room && (
+          <div className="flex items-center justify-center gap-2 pt-4 pb-2">
+            <span className="text-xs text-accent uppercase tracking-widest font-display font-bold">
+              {t('game.round', language)} {room.current_round}
+            </span>
+          </div>
+        )}
+
+        <AnimatePresence mode="wait">
+          {phase === 'reveal' && <RevealPhase key="reveal" />}
+          {phase === 'discussion' && <SpeakingQueuePhase key="discussion" />}
+          {phase === 'voting' && <VotingPhase key="voting" />}
+          {phase === 'results' && <ResultsPhase key="results" />}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

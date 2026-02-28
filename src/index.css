@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,52 +6,53 @@
 
 @layer base {
   :root {
-    --background: 230 15% 8%;
-    --foreground: 220 20% 92%;
+    --background: 270 40% 6%;
+    --foreground: 270 30% 92%;
 
-    --card: 230 15% 12%;
-    --card-foreground: 220 20% 92%;
+    --card: 270 35% 14%;
+    --card-foreground: 270 25% 92%;
 
-    --popover: 230 15% 12%;
-    --popover-foreground: 220 20% 92%;
+    --popover: 270 35% 14%;
+    --popover-foreground: 270 25% 92%;
 
-    --primary: 160 100% 45%;
-    --primary-foreground: 230 15% 8%;
+    --primary: 280 75% 55%;
+    --primary-foreground: 270 30% 95%;
 
-    --secondary: 230 15% 18%;
-    --secondary-foreground: 220 20% 85%;
+    --secondary: 270 30% 20%;
+    --secondary-foreground: 270 25% 80%;
 
-    --muted: 230 12% 16%;
-    --muted-foreground: 220 10% 55%;
+    --muted: 270 25% 16%;
+    --muted-foreground: 270 15% 50%;
 
-    --accent: 280 80% 60%;
-    --accent-foreground: 220 20% 95%;
+    --accent: 45 95% 55%;
+    --accent-foreground: 270 40% 8%;
 
-    --destructive: 0 75% 55%;
-    --destructive-foreground: 220 20% 95%;
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 230 15% 20%;
-    --input: 230 15% 18%;
-    --ring: 160 100% 45%;
+    --border: 270 35% 25%;
+    --input: 270 30% 18%;
+    --ring: 280 75% 55%;
 
     --radius: 0.75rem;
 
-    --neon-green: 160 100% 45%;
-    --neon-purple: 280 80% 60%;
+    --neon-purple: 280 75% 55%;
+    --neon-gold: 45 95% 55%;
     --neon-red: 0 85% 55%;
     --neon-orange: 30 95% 55%;
     --neon-blue: 210 100% 60%;
+    --neon-green: 160 100% 45%;
 
-    --sidebar-background: 230 15% 10%;
-    --sidebar-foreground: 220 20% 85%;
-    --sidebar-primary: 160 100% 45%;
-    --sidebar-primary-foreground: 230 15% 8%;
-    --sidebar-accent: 230 15% 15%;
-    --sidebar-accent-foreground: 220 20% 85%;
-    --sidebar-border: 230 15% 18%;
-    --sidebar-ring: 160 100% 45%;
+    --sidebar-background: 270 40% 8%;
+    --sidebar-foreground: 270 25% 85%;
+    --sidebar-primary: 280 75% 55%;
+    --sidebar-primary-foreground: 270 30% 95%;
+    --sidebar-accent: 270 30% 15%;
+    --sidebar-accent-foreground: 270 25% 85%;
+    --sidebar-border: 270 30% 20%;
+    --sidebar-ring: 280 75% 55%;
 
-    --font-display: 'Space Grotesk', sans-serif;
+    --font-display: 'Cinzel', serif;
     --font-body: 'Inter', sans-serif;
   }
 }
@@ -87,25 +88,157 @@
 }
 
 @layer utilities {
-  .glow-green {
-    box-shadow: 0 0 20px hsl(160 100% 45% / 0.3), 0 0 60px hsl(160 100% 45% / 0.1);
+  /* Spooky panel – the main container style from reference images */
+  .spooky-panel {
+    background: linear-gradient(145deg, hsl(270 35% 18%), hsl(270 35% 12%));
+    border: 2px solid hsl(270 40% 30%);
+    border-radius: 1rem;
+    box-shadow:
+      inset 0 1px 0 hsl(270 40% 35% / 0.3),
+      0 4px 20px hsl(270 50% 5% / 0.6),
+      0 0 40px hsl(280 75% 55% / 0.05);
+    position: relative;
+    overflow: hidden;
   }
+
+  .spooky-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, hsl(280 75% 55% / 0.5), transparent);
+  }
+
+  /* Spooky inner panel – darker inset area */
+  .spooky-inner {
+    background: linear-gradient(145deg, hsl(270 40% 8%), hsl(270 40% 6%));
+    border: 1px solid hsl(270 35% 18%);
+    border-radius: 0.75rem;
+  }
+
+  /* Spider web corner decoration */
+  .spider-corner::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 40px;
+    height: 40px;
+    background: radial-gradient(circle at 100% 0%, transparent 60%, hsl(270 25% 40% / 0.3) 62%, transparent 64%),
+                radial-gradient(circle at 100% 0%, transparent 40%, hsl(270 25% 40% / 0.2) 42%, transparent 44%),
+                radial-gradient(circle at 100% 0%, transparent 20%, hsl(270 25% 40% / 0.15) 22%, transparent 24%);
+    pointer-events: none;
+  }
+
+  /* Spooky button styles */
+  .spooky-btn {
+    background: linear-gradient(145deg, hsl(280 60% 40%), hsl(280 60% 30%));
+    border: 2px solid hsl(280 50% 45%);
+    border-radius: 0.75rem;
+    box-shadow:
+      inset 0 1px 0 hsl(280 60% 55% / 0.3),
+      0 2px 8px hsl(270 50% 5% / 0.5);
+    color: hsl(270 30% 95%);
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+  .spooky-btn:hover {
+    background: linear-gradient(145deg, hsl(280 60% 45%), hsl(280 60% 35%));
+    box-shadow:
+      inset 0 1px 0 hsl(280 60% 60% / 0.3),
+      0 2px 12px hsl(280 75% 55% / 0.3);
+  }
+  .spooky-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .spooky-btn-gold {
+    background: linear-gradient(145deg, hsl(45 85% 45%), hsl(35 90% 35%));
+    border: 2px solid hsl(45 80% 50%);
+    color: hsl(270 40% 8%);
+    box-shadow:
+      inset 0 1px 0 hsl(45 90% 60% / 0.4),
+      0 2px 8px hsl(45 90% 40% / 0.3);
+  }
+  .spooky-btn-gold:hover {
+    background: linear-gradient(145deg, hsl(45 85% 50%), hsl(35 90% 40%));
+    box-shadow:
+      inset 0 1px 0 hsl(45 90% 65% / 0.4),
+      0 2px 16px hsl(45 90% 50% / 0.4);
+  }
+
+  .spooky-btn-danger {
+    background: linear-gradient(145deg, hsl(0 65% 40%), hsl(0 65% 30%));
+    border: 2px solid hsl(0 60% 45%);
+  }
+  .spooky-btn-danger:hover {
+    background: linear-gradient(145deg, hsl(0 65% 45%), hsl(0 65% 35%));
+  }
+
+  .spooky-input {
+    background: hsl(270 40% 8%);
+    border: 2px solid hsl(270 35% 25%);
+    border-radius: 0.75rem;
+    color: hsl(270 30% 92%);
+    transition: all 0.2s;
+  }
+  .spooky-input:focus {
+    border-color: hsl(280 75% 55%);
+    box-shadow: 0 0 12px hsl(280 75% 55% / 0.2);
+    outline: none;
+  }
+  .spooky-input::placeholder {
+    color: hsl(270 15% 40%);
+  }
+
+  /* Glow effects */
   .glow-purple {
-    box-shadow: 0 0 20px hsl(280 80% 60% / 0.3), 0 0 60px hsl(280 80% 60% / 0.1);
+    box-shadow: 0 0 20px hsl(280 75% 55% / 0.3), 0 0 60px hsl(280 75% 55% / 0.1);
+  }
+  .glow-gold {
+    box-shadow: 0 0 20px hsl(45 95% 55% / 0.3), 0 0 60px hsl(45 95% 55% / 0.1);
   }
   .glow-red {
     box-shadow: 0 0 20px hsl(0 85% 55% / 0.3), 0 0 60px hsl(0 85% 55% / 0.1);
   }
-  .text-glow-green {
-    text-shadow: 0 0 20px hsl(160 100% 45% / 0.5);
+  .glow-green {
+    box-shadow: 0 0 20px hsl(160 100% 45% / 0.3), 0 0 60px hsl(160 100% 45% / 0.1);
   }
+
   .text-glow-purple {
-    text-shadow: 0 0 20px hsl(280 80% 60% / 0.5);
+    text-shadow: 0 0 20px hsl(280 75% 55% / 0.6), 0 0 40px hsl(280 75% 55% / 0.3);
   }
-  .gradient-surface {
-    background: linear-gradient(135deg, hsl(230 15% 12%), hsl(230 15% 8%));
+  .text-glow-gold {
+    text-shadow: 0 0 20px hsl(45 95% 55% / 0.6), 0 0 40px hsl(45 95% 55% / 0.3);
   }
-  .gradient-border {
-    background: linear-gradient(135deg, hsl(160 100% 45% / 0.2), hsl(280 80% 60% / 0.2));
+
+  /* Scratched texture overlay for panels */
+  .scratched-texture {
+    background-image:
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 40px,
+        hsl(270 30% 10% / 0.15) 40px,
+        hsl(270 30% 10% / 0.15) 41px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 60px,
+        hsl(270 30% 10% / 0.1) 60px,
+        hsl(270 30% 10% / 0.1) 61px
+      );
+  }
+
+  /* Background vignette */
+  .bg-vignette {
+    background: radial-gradient(ellipse at center, transparent 40%, hsl(270 50% 3%) 100%);
   }
 }
