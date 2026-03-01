@@ -2,12 +2,38 @@ import { supabase } from "@/integrations/supabase/client";
 
 const FUNCTION_NAME = 'game-engine';
 
+async function extractInvokeErrorMessage(error: unknown): Promise<string> {
+  const fallback = error instanceof Error ? error.message : 'Engine error';
+  const maybeContext = (error as { context?: Response } | null)?.context;
+
+  if (!maybeContext) return fallback;
+
+  try {
+    const body = await maybeContext.clone().json() as { error?: string; message?: string };
+    return body?.error || body?.message || fallback;
+  } catch {
+    try {
+      const text = await maybeContext.clone().text();
+      return text || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+}
+
 async function callEngine<T = unknown>(action: string, params: Record<string, unknown> = {}): Promise<T> {
   const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
     body: { action, ...params },
   });
-  if (error) throw new Error(error.message || 'Engine error');
-  if (data?.error) throw new Error(data.error);
+
+  if (error) {
+    throw new Error(await extractInvokeErrorMessage(error));
+  }
+
+  if ((data as { error?: string } | null)?.error) {
+    throw new Error((data as { error: string }).error);
+  }
+
   return data as T;
 }
 
