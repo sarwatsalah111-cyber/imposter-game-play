@@ -194,6 +194,16 @@ Deno.serve(async (req) => {
           .from('rooms').select('phase, current_round, total_rounds, host_session_id').eq('id', room_id).single();
         if (!room || room.phase !== 'discussion') return json({ error: 'Not in discussion phase' }, 400);
 
+        // Rate limit: check last spoke event timestamp for this player
+        const { data: recentSpoke } = await supabase
+          .from('room_events').select('created_at')
+          .eq('room_id', room_id).eq('event_type', 'spoke').eq('session_id', session_id)
+          .order('created_at', { ascending: false }).limit(1).maybeSingle();
+        if (recentSpoke) {
+          const elapsed = Date.now() - new Date(recentSpoke.created_at).getTime();
+          if (elapsed < 1500) return json({ error: 'Too fast, please wait' }, 429);
+        }
+
         // Get all spoke events for this game round
         const { data: allSpokeEvents } = await supabase
           .from('room_events').select('session_id, data')
@@ -205,7 +215,7 @@ Deno.serve(async (req) => {
           return d && d.game_round === room.current_round;
         });
 
-        // Count how many times this player has spoken this game round
+        // Idempotency: check if this exact turn was already recorded
         const myTurnCount = roundSpokeEvents.filter(e => e.session_id === session_id).length;
         if (myTurnCount >= room.total_rounds) {
           return json({ error: 'You have used all your speaking turns' }, 400);

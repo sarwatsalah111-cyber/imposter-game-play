@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
-import { playVictory, playGameOver } from '@/lib/sounds';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { playVictory, playGameOver, playClick, vibrate } from '@/lib/sounds';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Eye, EyeOff, MessageCircle, Vote, Trophy, Timer, ArrowRight, Home, CheckCircle, Target, Mic, MicOff, Skull, Star } from 'lucide-react';
+import { Eye, EyeOff, MessageCircle, Vote, Trophy, Timer, ArrowRight, Home, CheckCircle, Target, Mic, MicOff, Skull, Star, Loader2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 function CountdownTimer({ seconds, onComplete }: { seconds: number; onComplete?: () => void }) {
   const [timeLeft, setTimeLeft] = useState(seconds);
@@ -116,6 +117,9 @@ function RevealPhase() {
 function SpeakingQueuePhase() {
   const { room, players, language, sessionId, isHost, advancePhase, markSpoke, spokeStatus } = useGame();
   const activePlayers = players.filter(p => p.is_online && !p.is_eliminated);
+  const [speaking, setSpeaking] = useState(false);
+  const [justSpoke, setJustSpoke] = useState(false);
+  const lastSpokeRef = useRef(0);
 
   const playerOrder = spokeStatus?.player_order || activePlayers.map(p => p.session_id);
   const currentTurnIndex = spokeStatus?.current_turn_index ?? 0;
@@ -127,6 +131,40 @@ function SpeakingQueuePhase() {
 
   const currentSpeakingRound = Math.floor(currentTurnIndex / playerOrder.length) + 1;
   const isMyTurn = currentTurnPlayer === sessionId;
+
+  const handleSpoke = useCallback(async () => {
+    // Anti-spam: debounce 2s
+    const now = Date.now();
+    if (now - lastSpokeRef.current < 2000) return;
+    if (speaking) return;
+
+    lastSpokeRef.current = now;
+    setSpeaking(true);
+    vibrate(50);
+    playClick();
+
+    try {
+      await markSpoke();
+      setJustSpoke(true);
+      vibrate([30, 50, 30]);
+      setTimeout(() => setJustSpoke(false), 1200);
+    } catch (e: unknown) {
+      const msg = (e as Error).message || '';
+      toast({
+        title: msg.includes('Not your turn')
+          ? t('game.notYourTurn', language)
+          : msg.includes('all your speaking')
+            ? t('game.youSpoke', language)
+            : t('error.generic', language),
+        description: msg.includes('Not your turn') || msg.includes('all your speaking')
+          ? undefined
+          : t('game.retrying', language),
+        variant: 'destructive',
+      });
+    } finally {
+      setSpeaking(false);
+    }
+  }, [markSpoke, speaking, language]);
 
   return (
     <motion.div
@@ -184,7 +222,7 @@ function SpeakingQueuePhase() {
               {isCurrent ? (
                 <Mic className="w-5 h-5 text-primary animate-pulse" />
               ) : isDone ? (
-                <MicOff className="w-5 h-5 text-muted-foreground" />
+                <CheckCircle className="w-5 h-5 text-accent" />
               ) : (
                 <Mic className="w-5 h-5 text-muted-foreground" />
               )}
@@ -194,18 +232,21 @@ function SpeakingQueuePhase() {
                 {player.nickname}
                 {isMe && <span className="text-accent text-xs ml-1">({t('game.you', language)})</span>}
               </span>
-              {/* Turn counter dots */}
-              <div className="flex gap-1">
-                {Array.from({ length: totalRounds }).map((_, j) => (
-                  <div
-                    key={j}
-                    className={`w-2.5 h-2.5 rounded-full border ${
-                      j < count ? 'bg-accent border-accent' : 'bg-muted border-border'
-                    }`}
-                  />
-                ))}
-              </div>
-              {isDone && <CheckCircle className="w-4 h-4 text-accent" />}
+              {/* Spoke status badge */}
+              {isDone ? (
+                <span className="text-xs text-accent font-display uppercase tracking-wider">✅</span>
+              ) : (
+                <div className="flex gap-1">
+                  {Array.from({ length: totalRounds }).map((_, j) => (
+                    <div
+                      key={j}
+                      className={`w-2.5 h-2.5 rounded-full border ${
+                        j < count ? 'bg-accent border-accent' : 'bg-muted border-border'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </motion.div>
           );
         })}
@@ -217,13 +258,21 @@ function SpeakingQueuePhase() {
           <motion.button
             key="speak-btn"
             initial={{ scale: 0.95 }}
-            animate={{ scale: [1, 1.03, 1] }}
-            transition={{ repeat: Infinity, duration: 1.5 }}
-            onClick={markSpoke}
-            className="w-full py-4 spooky-btn text-base glow-purple flex items-center justify-center gap-2"
+            animate={justSpoke
+              ? { scale: [1, 1.08, 1], boxShadow: ['0 0 0px hsl(280 75% 55% / 0)', '0 0 30px hsl(280 75% 55% / 0.6)', '0 0 0px hsl(280 75% 55% / 0)'] }
+              : { scale: [1, 1.03, 1] }
+            }
+            transition={justSpoke ? { duration: 0.6 } : { repeat: Infinity, duration: 1.5 }}
+            onClick={handleSpoke}
+            disabled={speaking}
+            className="w-full py-4 spooky-btn text-base glow-purple flex items-center justify-center gap-2 disabled:opacity-70"
           >
-            <Mic className="w-5 h-5" />
-            {t('game.iSpoke', language)}
+            {speaking ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
+            {speaking ? '...' : t('game.iSpoke', language)}
           </motion.button>
         ) : (
           <div className="w-full py-4 rounded-xl spooky-inner border border-border text-muted-foreground font-display font-medium text-center text-sm uppercase tracking-wider">
