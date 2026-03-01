@@ -3,6 +3,7 @@ import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
 import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { playClick } from '@/lib/sounds';
 
 function SettingControl({ label, value, onChange, min, max, step = 1, suffix = '' }: {
   label: string; value: number; onChange: (v: number) => void;
@@ -60,12 +61,12 @@ export function LobbyScreen() {
       <div className="relative z-10 flex flex-col flex-1 max-w-md mx-auto w-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <button onClick={leaveRoom} className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors">
+          <button onClick={() => { playClick(); leaveRoom(); }} className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors">
             <LogOut className="w-4 h-4" />
           </button>
           <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple">{t('lobby.title', language)}</h2>
           {isHost ? (
-            <button onClick={() => setShowSettings(!showSettings)} className={`w-10 h-10 rounded-lg spooky-inner border flex items-center justify-center transition-colors ${showSettings ? 'border-accent text-accent' : 'border-border text-muted-foreground hover:text-foreground hover:border-primary/40'}`}>
+            <button onClick={() => { playClick(); setShowSettings(!showSettings); }} className={`w-10 h-10 rounded-lg spooky-inner border flex items-center justify-center transition-colors ${showSettings ? 'border-accent text-accent' : 'border-border text-muted-foreground hover:text-foreground hover:border-primary/40'}`}>
               <Settings className="w-4 h-4" />
             </button>
           ) : (
@@ -81,7 +82,7 @@ export function LobbyScreen() {
         >
           <p className="text-muted-foreground text-xs mb-1 uppercase tracking-widest font-display">{t('lobby.code', language)}</p>
           <button
-            onClick={copyCode}
+            onClick={() => { playClick(); copyCode(); }}
             className="inline-flex items-center gap-2 px-5 py-2 rounded-lg spooky-inner border border-border hover:border-accent/40 transition-all"
           >
             <span className="font-display text-3xl font-bold text-accent tracking-[0.3em] text-glow-gold">
@@ -177,7 +178,7 @@ export function LobbyScreen() {
         <div className="mt-4">
           {isHost ? (
             <button
-              onClick={startGame}
+              onClick={() => { playClick(); startGame(); }}
               disabled={!canStart || loading}
               className="w-full py-4 spooky-btn-gold spooky-btn text-base glow-gold flex items-center justify-center gap-2"
             >

@@ -1,13 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t, LANGUAGES, type Language } from '@/lib/i18n';
 import { Eye, Users, Globe, Sparkles, Skull } from 'lucide-react';
+import { startAmbient, stopAmbient, playClick } from '@/lib/sounds';
 
 export function HomeScreen() {
   const { nickname, setNickname, language, setLanguage, createRoom, joinRoom, loading, error, clearError } = useGame();
   const [mode, setMode] = useState<'home' | 'create' | 'join'>('home');
   const [roomCode, setRoomCode] = useState('');
+
+  // Start ambient sound on mount, stop on unmount
+  useEffect(() => {
+    const startSound = () => {
+      startAmbient();
+      document.removeEventListener('click', startSound);
+    };
+    // Audio requires user gesture, start on first click
+    document.addEventListener('click', startSound);
+    return () => {
+      document.removeEventListener('click', startSound);
+      stopAmbient();
+    };
+  }, []);
 
   const handleCreate = async () => {
     if (!nickname.trim()) return;
@@ -57,7 +72,7 @@ export function HomeScreen() {
           {LANGUAGES.map(lang => (
             <button
               key={lang.code}
-              onClick={() => setLanguage(lang.code)}
+              onClick={() => { playClick(); setLanguage(lang.code); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all uppercase tracking-wider ${
                 language === lang.code
                   ? 'spooky-btn-gold'
@@ -101,7 +116,7 @@ export function HomeScreen() {
               className="flex flex-col gap-3"
             >
               <button
-                onClick={() => nickname.trim() ? setMode('create') : undefined}
+                onClick={() => { playClick(); if (nickname.trim()) setMode('create'); }}
                 disabled={!nickname.trim()}
                 className="w-full py-4 spooky-btn text-base flex items-center justify-center gap-2"
               >
@@ -109,7 +124,7 @@ export function HomeScreen() {
                 {t('home.create', language)}
               </button>
               <button
-                onClick={() => nickname.trim() ? setMode('join') : undefined}
+                onClick={() => { playClick(); if (nickname.trim()) setMode('join'); }}
                 disabled={!nickname.trim()}
                 className="w-full py-4 spooky-btn-gold spooky-btn text-base flex items-center justify-center gap-2"
               >
@@ -126,14 +141,14 @@ export function HomeScreen() {
               className="flex flex-col gap-3"
             >
               <button
-                onClick={handleCreate}
+                onClick={() => { playClick(); handleCreate(); }}
                 disabled={loading || !nickname.trim()}
                 className="w-full py-4 spooky-btn text-base glow-purple"
               >
                 {loading ? '...' : t('home.create', language)}
               </button>
               <button
-                onClick={() => setMode('home')}
+                onClick={() => { playClick(); setMode('home'); }}
                 className="text-muted-foreground text-sm hover:text-foreground transition-colors font-display uppercase tracking-wider"
               >
                 ← {t('lobby.leave', language)}
@@ -157,14 +172,14 @@ export function HomeScreen() {
                 className="w-full px-4 py-3 spooky-input text-center font-display text-2xl tracking-[0.5em]"
               />
               <button
-                onClick={handleJoin}
+                onClick={() => { playClick(); handleJoin(); }}
                 disabled={loading || roomCode.length !== 6}
                 className="w-full py-4 spooky-btn text-base glow-purple"
               >
                 {loading ? '...' : t('home.join', language)}
               </button>
               <button
-                onClick={() => { setMode('home'); setRoomCode(''); }}
+                onClick={() => { playClick(); setMode('home'); setRoomCode(''); }}
                 className="text-muted-foreground text-sm hover:text-foreground transition-colors font-display uppercase tracking-wider"
               >
                 ← {t('lobby.leave', language)}
