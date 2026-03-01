@@ -358,7 +358,7 @@ Deno.serve(async (req) => {
           return json({ error: 'Invalid phase transition' }, 400);
         }
 
-        // When transitioning to results, auto-finalize the round scoring and close the game
+        // When transitioning to results, auto-finalize the round scoring
         if (phase === 'results') {
           await finalizeRound(supabase, room_id, room.match_id, room.current_round);
         }
@@ -366,8 +366,8 @@ Deno.serve(async (req) => {
         const updateData: Record<string, unknown> = {
           phase, updated_at: new Date().toISOString(),
         };
-        // Close the room when results are shown — game is finished
-        if (phase === 'results') {
+        // Close the room only when ALL rounds are done
+        if (phase === 'results' && room.current_round >= room.total_rounds) {
           updateData.status = 'closed';
           updateData.closed_at = new Date().toISOString();
         }
