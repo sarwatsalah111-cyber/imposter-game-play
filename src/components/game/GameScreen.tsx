@@ -262,7 +262,30 @@ function SpeakingQueuePhase() {
         <p className="text-muted-foreground text-xs mt-1 italic">{t('game.speakingHint', language)}</p>
       </div>
 
-      {/* Round & turn progress */}
+      {/* Turn status chip */}
+      {!allDone && (
+        <motion.div
+          key={currentTurnPlayer}
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`mx-auto px-4 py-2 rounded-full border font-display font-bold text-sm uppercase tracking-wider text-center ${
+            isMyTurn
+              ? 'border-primary/60 bg-primary/15 text-primary shadow-[0_0_12px_hsl(var(--primary)/0.3)] animate-pulse'
+              : 'border-border bg-muted/50 text-muted-foreground'
+          }`}
+        >
+          {isMyTurn ? (
+            <span className="flex items-center gap-2 justify-center">
+              <Mic className="w-4 h-4" />
+              {t('game.yourTurn', language)}
+            </span>
+          ) : (() => {
+            const cp = activePlayers.find(p => p.session_id === currentTurnPlayer);
+            return cp ? `⏳ ${t('game.waitingFor', language)} ${cp.nickname}` : t('game.waitingTurn', language);
+          })()}
+        </motion.div>
+      )}
+
       <div className="spooky-panel p-3 flex flex-col items-center gap-2">
         <span className="text-sm font-display font-bold text-accent uppercase tracking-wider">
           {t('game.speakingRound', language)} {Math.min(currentSpeakingRound, totalRounds)}/{totalRounds}
