@@ -285,6 +285,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       fetchPlayers(roomId);
       fetchRoom(roomId);
 
+      // Poll spoke status during discussion phase for reliable sync
+      setState(prev => {
+        if (prev.phase === 'discussion') {
+          refreshSpokeStatus(roomId);
+        }
+        return prev;
+      });
+
       // Host migration watchdog
       setState(prev => {
         if (!prev.room || prev.isHost) return prev;
