@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, UserX } from 'lucide-react';
-import { useState } from 'react';
+import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, UserX, AlertTriangle, RefreshCw, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
 
 function SettingControl({ label, value, onChange, min, max, step = 1, suffix = '' }: {
@@ -57,11 +57,26 @@ function ToggleSetting({ label, icon: Icon, enabled, onToggle }: {
 }
 
 export function LobbyScreen() {
-  const { room, players, isHost, language, sessionId, startGame, updateSettings, leaveRoom, kickPlayer, loading } = useGame();
+  const { room, players, isHost, language, sessionId, startGame, updateSettings, leaveRoom, kickPlayer, loading, error, clearError, retryConnection } = useGame();
   const [copied, setCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
   const [vibrationOn, setVibrationOn] = useState(isVibrationEnabled());
+  const [isStuck, setIsStuck] = useState(false);
+  const mountTimeRef = useRef(Date.now());
+
+  // Stuck detection: mounted >10s with no players
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - mountTimeRef.current;
+      if (elapsed > 10000 && players.length === 0) {
+        setIsStuck(true);
+      } else {
+        setIsStuck(false);
+      }
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [players.length]);
 
   if (!room) return null;
 
@@ -95,6 +110,39 @@ export function LobbyScreen() {
             <Settings className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Error banner */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-3 rounded-lg border border-destructive/40 bg-destructive/10 flex items-center gap-3"
+          >
+            <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+            <span className="text-sm text-destructive flex-1">{error}</span>
+            <button onClick={() => { playClick(); clearError(); }} className="text-destructive/60 hover:text-destructive">
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+
+        {/* Stuck detection */}
+        {isStuck && !error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-3 rounded-lg border border-accent/40 bg-accent/10 flex items-center gap-3"
+          >
+            <RefreshCw className="w-4 h-4 text-accent shrink-0" />
+            <span className="text-sm text-accent flex-1">Connection issue — no players loaded</span>
+            <button
+              onClick={() => { playClick(); retryConnection(); }}
+              className="px-3 py-1 rounded-md text-xs font-bold bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
+            >
+              Retry
+            </button>
+          </motion.div>
+        )}
 
         {/* Room code panel */}
         <motion.div

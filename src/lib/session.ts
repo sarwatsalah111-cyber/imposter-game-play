@@ -1,6 +1,13 @@
 const SESSION_KEY = 'imposter_session_id';
 const NICKNAME_KEY = 'imposter_nickname';
 const SETTINGS_KEY = 'imposter_default_settings';
+const ROOM_CONTEXT_KEY = 'imposter_room_context';
+
+export interface RoomContext {
+  roomId: string;
+  roomCode: string;
+  sessionId: string;
+}
 
 export interface DefaultGameSettings {
   max_players: number;
@@ -47,5 +54,25 @@ export function getDefaultSettings(): DefaultGameSettings {
 export function saveDefaultSettings(settings: DefaultGameSettings): void {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch {}
+}
+
+export function saveRoomContext(ctx: RoomContext): void {
+  try {
+    localStorage.setItem(ROOM_CONTEXT_KEY, JSON.stringify(ctx));
+  } catch {}
+}
+
+export function getRoomContext(): RoomContext | null {
+  try {
+    const stored = localStorage.getItem(ROOM_CONTEXT_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return null;
+}
+
+export function clearRoomContext(): void {
+  try {
+    localStorage.removeItem(ROOM_CONTEXT_KEY);
   } catch {}
 }

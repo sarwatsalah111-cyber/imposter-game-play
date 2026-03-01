@@ -141,10 +141,13 @@ Deno.serve(async (req) => {
           return json({ error: `Need at least ${room.min_players} players` }, 400);
         }
 
+        // Select word — rollback-safe
         const { data: words } = await supabase
           .from('word_bank').select('word')
           .eq('language', room.language).eq('is_active', true);
-        if (!words || words.length === 0) return json({ error: 'No words available' }, 500);
+        if (!words || words.length === 0) {
+          return json({ error: 'No words available for this language. Cannot start.' }, 500);
+        }
         const secretWord = words[Math.floor(Math.random() * words.length)].word;
 
         const imposterIdx = Math.floor(Math.random() * players.length);
@@ -152,7 +155,8 @@ Deno.serve(async (req) => {
 
         const newRound = (room.phase === 'results') ? room.current_round + 1 : 1;
 
-        await supabase.from('rooms').update({
+        // Single update — if this fails, room stays in lobby/results (safe)
+        const { error: updateErr } = await supabase.from('rooms').update({
           phase: 'reveal',
           status: 'playing',
           secret_word: secretWord,
@@ -160,6 +164,11 @@ Deno.serve(async (req) => {
           current_round: newRound,
           updated_at: new Date().toISOString(),
         }).eq('id', room_id);
+
+        if (updateErr) {
+          console.error('start-game update failed:', updateErr);
+          return json({ error: 'Failed to start game. Please retry.' }, 500);
+        }
 
         await supabase.from('room_events').insert({
           room_id, event_type: 'started', session_id,
@@ -444,6 +453,54 @@ Deno.serve(async (req) => {
         await supabase.from('room_players').delete().eq('room_id', room_id).eq('session_id', target_session_id);
         await supabase.from('room_events').insert({
           room_id, event_type: 'kicked', session_id, data: { target: target_session_id },
+        });
+
+        return json({ success: true });
+      }
+
+      case 'migrate-host': {
+        const { session_id, room_id } = params;
+        if (!session_id || !room_id) return json({ error: 'Missing fields' }, 400);
+
+        const { data: room } = await supabase.from('rooms').select('host_session_id, status').eq('id', room_id).single();
+        if (!room) return json({ error: 'Room not found' }, 404);
+        if (room.status === 'closed') return json({ error: 'Room is closed' }, 400);
+
+        // Verify current host is actually disconnected
+        const { data: currentHost } = await supabase
+          .from('room_players').select('last_heartbeat, is_online')
+          .eq('room_id', room_id).eq('session_id', room.host_session_id).maybeSingle();
+
+        if (currentHost) {
+          const hostLastSeen = new Date(currentHost.last_heartbeat).getTime();
+          const elapsed = Date.now() - hostLastSeen;
+          if (currentHost.is_online && elapsed < 25000) {
+            return json({ error: 'Current host is still connected' }, 400);
+          }
+        }
+
+        // Verify requester is the oldest connected player
+        const { data: oldestPlayer } = await supabase
+          .from('room_players').select('session_id')
+          .eq('room_id', room_id).eq('is_online', true)
+          .order('joined_at').limit(1).maybeSingle();
+
+        if (!oldestPlayer || oldestPlayer.session_id !== session_id) {
+          return json({ error: 'Only the oldest connected player can become host' }, 403);
+        }
+
+        // Migrate host
+        await supabase.from('room_players').update({ is_host: false })
+          .eq('room_id', room_id).eq('session_id', room.host_session_id);
+        await supabase.from('room_players').update({ is_host: true })
+          .eq('room_id', room_id).eq('session_id', session_id);
+        await supabase.from('rooms').update({
+          host_session_id: session_id,
+          updated_at: new Date().toISOString(),
+        }).eq('id', room_id);
+
+        await supabase.from('room_events').insert({
+          room_id, event_type: 'host_migrated', session_id,
         });
 
         return json({ success: true });
