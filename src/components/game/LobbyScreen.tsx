@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
 import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, UserX, AlertTriangle, RefreshCw, X } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
 
 function SettingControl({ label, value, onChange, min, max, step = 1, suffix = '' }: {
@@ -65,18 +65,39 @@ export function LobbyScreen() {
   const [isStuck, setIsStuck] = useState(false);
   const mountTimeRef = useRef(Date.now());
 
+  // ─── Debounced settings: batch changes and send once after 400ms idle ───
+  const pendingSettingsRef = useRef<Record<string, unknown>>({});
+  const debounceTimerRef = useRef<NodeJS.Timeout>();
+
+  const flushSettings = useCallback(() => {
+    const pending = pendingSettingsRef.current;
+    if (Object.keys(pending).length === 0) return;
+    pendingSettingsRef.current = {};
+    updateSettings(pending);
+  }, [updateSettings]);
+
+  const handleSettingChange = useCallback((key: string, value: number) => {
+    pendingSettingsRef.current = { ...pendingSettingsRef.current, [key]: value };
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(flushSettings, 400);
+  }, [flushSettings]);
+
   // Stuck detection: mounted >10s with no players
   useEffect(() => {
     const timer = setInterval(() => {
       const elapsed = Date.now() - mountTimeRef.current;
-      if (elapsed > 10000 && players.length === 0) {
-        setIsStuck(true);
-      } else {
-        setIsStuck(false);
-      }
+      setIsStuck(elapsed > 10000 && players.length === 0);
     }, 3000);
     return () => clearInterval(timer);
   }, [players.length]);
+
+  // Flush pending settings on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      flushSettings();
+    };
+  }, [flushSettings]);
 
   if (!room) return null;
 
@@ -88,10 +109,6 @@ export function LobbyScreen() {
 
   const onlinePlayers = players.filter(p => p.is_online);
   const canStart = isHost && onlinePlayers.length >= room.min_players;
-
-  const handleSettingChange = (key: string, value: number) => {
-    updateSettings({ [key]: value });
-  };
 
   return (
     <div className="min-h-screen flex flex-col px-4 py-6 safe-area-top safe-area-bottom relative">

@@ -87,6 +87,7 @@ Deno.serve(async (req) => {
         const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
         if (settings.total_rounds !== undefined) updates.total_rounds = Math.min(Math.max(Number(settings.total_rounds), 1), 10);
         if (settings.voting_time !== undefined) updates.voting_time = Math.min(Math.max(Number(settings.voting_time), 15), 120);
+        if (settings.discussion_time !== undefined) updates.discussion_time = Math.min(Math.max(Number(settings.discussion_time), 30), 300);
         if (settings.max_players !== undefined) updates.max_players = Math.min(Math.max(Number(settings.max_players), 3), 22);
         if (settings.min_players !== undefined) updates.min_players = Math.min(Math.max(Number(settings.min_players), 3), 22);
 
