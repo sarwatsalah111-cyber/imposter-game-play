@@ -266,9 +266,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
             const newPhase = (newRoom.phase as GamePhase) || prev.phase;
             const phaseChanged = newPhase !== prev.phase;
+            const newRound = (newRoom.current_round as number) ?? prev.room?.current_round ?? 0;
+            const roundChanged = newRound !== (prev.room?.current_round ?? 0);
 
-            // When phase transitions to 'reveal', clear stale round data so all players re-fetch
-            const roundReset = phaseChanged && newPhase === 'reveal'
+            // When phase transitions to 'reveal' OR round number changes, clear stale round data so all players re-fetch
+            const roundReset = (phaseChanged && newPhase === 'reveal') || roundChanged
               ? { reveal: null, results: null, hasVoted: false, spokeStatus: null, spokenPlayers: [] }
               : {};
 
