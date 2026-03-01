@@ -88,12 +88,23 @@ function BulkImportForm({ language, uiLang, onImported }: { language: string; ui
   const [result, setResult] = useState<string | null>(null);
 
   const handleImport = async () => {
-    const words = text.split('\n').map(w => w.trim()).filter(w => w.length > 0 && w.length <= 50);
-    if (words.length === 0) return;
+    const uniqueWords = [...new Set(text.split('\n').map(w => w.trim()).filter(w => w.length > 0 && w.length <= 50))];
+    if (uniqueWords.length === 0) return;
     setImporting(true);
     setResult(null);
 
-    const rows = words.map(w => ({
+    // Filter out words that already exist in the DB
+    const { data: existing } = await supabase.from('word_bank').select('word').eq('language', language).in('word', uniqueWords);
+    const existingSet = new Set((existing || []).map(e => e.word));
+    const newWords = uniqueWords.filter(w => !existingSet.has(w));
+
+    if (newWords.length === 0) {
+      setImporting(false);
+      setResult(t('wordbank.allDuplicates', uiLang));
+      return;
+    }
+
+    const rows = newWords.map(w => ({
       word: w,
       category,
       difficulty,
@@ -105,7 +116,7 @@ function BulkImportForm({ language, uiLang, onImported }: { language: string; ui
     if (error) {
       setResult(`Error: ${error.message}`);
     } else {
-      setResult(t('wordbank.importSuccess', uiLang, { count: data?.length || words.length }));
+      setResult(t('wordbank.importSuccess', uiLang, { count: data?.length || newWords.length }));
       setText('');
       onImported();
     }
