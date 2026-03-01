@@ -551,7 +551,7 @@ function ResultsPhase() {
       </div>
 
       {/* Points awarded this round */}
-      {Object.keys(results.points_awarded).length > 0 && (
+      {results?.points_awarded && Object.keys(results.points_awarded).length > 0 && (
         <div className="w-full max-w-xs">
           <p className="text-xs text-muted-foreground font-display uppercase tracking-widest text-center mb-2">{t('game.pointsAwarded', language)}</p>
           <div className="space-y-1.5">
