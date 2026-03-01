@@ -51,6 +51,57 @@ function CountdownTimer({ seconds, onComplete }: { seconds: number; onComplete?:
 function RevealPhase() {
   const { reveal, language, room, isHost, advancePhase } = useGame();
   const isImposter = reveal?.role === 'imposter';
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 1800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showSplash) {
+    return (
+      <motion.div
+        key="round-splash"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0, scale: 1.1 }}
+        transition={{ duration: 0.2 }}
+        className="flex-1 flex flex-col items-center justify-center gap-4 px-4"
+      >
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.35, type: 'spring', stiffness: 250, damping: 18 }}
+          className="relative"
+        >
+          <div className="w-28 h-28 rounded-full border-2 border-primary/40 bg-primary/10 flex items-center justify-center shadow-[0_0_40px_hsl(var(--primary)/0.3)]">
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.15, duration: 0.25, type: 'spring', stiffness: 300 }}
+              className="font-display text-5xl font-black text-primary text-glow-purple"
+            >
+              {room?.current_round}
+            </motion.span>
+          </div>
+        </motion.div>
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.2 }}
+          className="font-display text-xl font-bold text-foreground uppercase tracking-[0.2em] text-glow-purple"
+        >
+          {t('game.round', language)} {room?.current_round}
+        </motion.p>
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: '6rem' }}
+          transition={{ delay: 0.35, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
+        />
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
