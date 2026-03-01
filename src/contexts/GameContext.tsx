@@ -345,9 +345,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, [state.room?.id]);
 
-  // Fetch reveal when phase changes to reveal
+  // Fetch reveal when phase changes to reveal or discussion (reconnection recovery)
   useEffect(() => {
-    if (state.phase === 'reveal' && state.room && !state.reveal) {
+    if ((state.phase === 'reveal' || state.phase === 'discussion') && state.room && !state.reveal) {
       engine.getReveal(state.sessionId, state.room.id)
         .then(reveal => update({ reveal }))
         .catch(() => {});
