@@ -152,7 +152,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             if (!prev.room) return prev;
             const updated = { ...prev.room };
             (['phase', 'status', 'host_session_id', 'current_round', 'updated_at', 'closed_at',
-              'language', 'discussion_time', 'voting_time', 'reveal_time', 'total_rounds', 'max_players',
+              'language', 'discussion_time', 'voting_time', 'reveal_time', 'total_rounds', 'max_players', 'min_players',
             ] as const).forEach(k => {
               if (k in newRoom) (updated as Record<string, unknown>)[k] = newRoom[k];
             });

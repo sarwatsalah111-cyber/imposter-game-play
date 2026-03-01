@@ -52,9 +52,10 @@ Deno.serve(async (req) => {
           phase: 'lobby',
         };
         if (settings) {
-          if (settings.max_players) roomData.max_players = Math.min(Math.max(settings.max_players, 4), 12);
-          if (settings.total_rounds) roomData.total_rounds = Math.min(Math.max(settings.total_rounds, 1), 10);
-          if (settings.voting_time) roomData.voting_time = Math.min(Math.max(settings.voting_time, 15), 120);
+          if (settings.max_players !== undefined) roomData.max_players = Math.min(Math.max(Number(settings.max_players), 4), 22);
+          if (settings.min_players !== undefined) roomData.min_players = Math.min(Math.max(Number(settings.min_players), 3), 22);
+          if (settings.total_rounds !== undefined) roomData.total_rounds = Math.min(Math.max(Number(settings.total_rounds), 1), 10);
+          if (settings.voting_time !== undefined) roomData.voting_time = Math.min(Math.max(Number(settings.voting_time), 15), 120);
         }
 
         const { data: room, error: roomErr } = await supabase
@@ -83,10 +84,13 @@ Deno.serve(async (req) => {
         if (room.phase !== 'lobby') return json({ error: 'Can only change settings in lobby' }, 400);
 
         const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-        if (settings.total_rounds !== undefined) updates.total_rounds = Math.min(Math.max(settings.total_rounds, 1), 10);
-        if (settings.voting_time !== undefined) updates.voting_time = Math.min(Math.max(settings.voting_time, 15), 120);
+        if (settings.total_rounds !== undefined) updates.total_rounds = Math.min(Math.max(Number(settings.total_rounds), 1), 10);
+        if (settings.voting_time !== undefined) updates.voting_time = Math.min(Math.max(Number(settings.voting_time), 15), 120);
+        if (settings.max_players !== undefined) updates.max_players = Math.min(Math.max(Number(settings.max_players), 4), 22);
+        if (settings.min_players !== undefined) updates.min_players = Math.min(Math.max(Number(settings.min_players), 3), 22);
 
-        await supabase.from('rooms').update(updates).eq('id', room_id);
+        const { error: updateErr } = await supabase.from('rooms').update(updates).eq('id', room_id);
+        if (updateErr) return json({ error: updateErr.message }, 500);
         return json({ success: true });
       }
 

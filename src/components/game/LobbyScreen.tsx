@@ -110,6 +110,12 @@ export function LobbyScreen() {
               {t('lobby.settings', language)}
             </h3>
             <SettingControl
+              label={t('lobby.maxPlayers', language)}
+              value={room.max_players}
+              onChange={(v) => handleSettingChange('max_players', v)}
+              min={4} max={22}
+            />
+            <SettingControl
               label={t('lobby.rounds', language)}
               value={room.total_rounds}
               onChange={(v) => handleSettingChange('total_rounds', v)}
@@ -127,6 +133,7 @@ export function LobbyScreen() {
         {/* Settings summary */}
         <div className="flex flex-wrap gap-2 justify-center mb-4">
           {[
+            { label: t('lobby.maxPlayers', language), value: room.max_players },
             { label: t('lobby.rounds', language), value: room.total_rounds },
             { label: t('lobby.votingTime', language), value: `${room.voting_time}s` },
           ].map((s, i) => (
