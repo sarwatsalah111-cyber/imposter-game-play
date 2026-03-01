@@ -142,17 +142,26 @@ Deno.serve(async (req) => {
           return json({ error: `Need at least ${room.min_players} players` }, 400);
         }
 
-        // Select word
+        // Select word — exclude previous round's word to prevent repeats
+        const previousWord = room.secret_word || null;
         const { data: words } = await supabase
           .from('word_bank').select('word')
           .eq('language', room.language).eq('is_active', true);
         if (!words || words.length === 0) {
           return json({ error: 'No words available for this language. Cannot start.' }, 500);
         }
-        const secretWord = words[Math.floor(Math.random() * words.length)].word;
+        let availableWords = previousWord ? words.filter(w => w.word !== previousWord) : words;
+        if (availableWords.length === 0) availableWords = words; // fallback if only 1 word exists
+        const secretWord = availableWords[Math.floor(Math.random() * availableWords.length)].word;
 
-        const imposterIdx = Math.floor(Math.random() * players.length);
-        const imposterSessionId = players[imposterIdx].session_id;
+        // Select imposter — exclude previous round's imposter to prevent repeats (unless ≤2 players)
+        const previousImposter = room.imposter_session_id || null;
+        let eligiblePlayers = players.length > 2 && previousImposter
+          ? players.filter(p => p.session_id !== previousImposter)
+          : players;
+        if (eligiblePlayers.length === 0) eligiblePlayers = players; // safety fallback
+        const imposterIdx = Math.floor(Math.random() * eligiblePlayers.length);
+        const imposterSessionId = eligiblePlayers[imposterIdx].session_id;
 
         const newRound = (room.phase === 'results') ? room.current_round + 1 : 1;
 
@@ -186,7 +195,14 @@ Deno.serve(async (req) => {
 
         await supabase.from('room_events').insert({
           room_id, event_type: 'started', session_id,
-          data: { round: newRound },
+          data: {
+            round: newRound,
+            word_selected: secretWord,
+            imposter_selected: imposterSessionId,
+            previous_word: previousWord,
+            previous_imposter: previousImposter,
+            player_count: players.length,
+          },
         });
 
         return json({ success: true, round: newRound });
