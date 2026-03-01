@@ -64,8 +64,10 @@ export type Database = {
           is_online: boolean
           joined_at: string
           last_heartbeat: string
+          match_id: string
           nickname: string
           room_id: string
+          score: number
           session_id: string
         }
         Insert: {
@@ -75,8 +77,10 @@ export type Database = {
           is_online?: boolean
           joined_at?: string
           last_heartbeat?: string
+          match_id?: string
           nickname: string
           room_id: string
+          score?: number
           session_id: string
         }
         Update: {
@@ -86,8 +90,10 @@ export type Database = {
           is_online?: boolean
           joined_at?: string
           last_heartbeat?: string
+          match_id?: string
           nickname?: string
           room_id?: string
+          score?: number
           session_id?: string
         }
         Relationships: [
@@ -118,6 +124,7 @@ export type Database = {
           id: string
           imposter_session_id: string | null
           language: string
+          match_id: string
           max_players: number
           min_players: number
           phase: string
@@ -138,6 +145,7 @@ export type Database = {
           id?: string
           imposter_session_id?: string | null
           language?: string
+          match_id?: string
           max_players?: number
           min_players?: number
           phase?: string
@@ -158,6 +166,7 @@ export type Database = {
           id?: string
           imposter_session_id?: string | null
           language?: string
+          match_id?: string
           max_players?: number
           min_players?: number
           phase?: string
@@ -169,6 +178,108 @@ export type Database = {
           voting_time?: number
         }
         Relationships: []
+      }
+      round_results: {
+        Row: {
+          created_at: string
+          id: string
+          imposter_player_id: string
+          match_id: string
+          outcome: string
+          points_awarded: Json
+          room_id: string
+          round_index: number
+          secret_word: string | null
+          votes: Json | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          imposter_player_id: string
+          match_id: string
+          outcome: string
+          points_awarded?: Json
+          room_id: string
+          round_index: number
+          secret_word?: string | null
+          votes?: Json | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          imposter_player_id?: string
+          match_id?: string
+          outcome?: string
+          points_awarded?: Json
+          room_id?: string
+          round_index?: number
+          secret_word?: string | null
+          votes?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_results_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_results_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      score_events: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          match_id: string
+          player_id: string
+          reason: string
+          room_id: string
+          round_index: number
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          match_id: string
+          player_id: string
+          reason: string
+          room_id: string
+          round_index: number
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          match_id?: string
+          player_id?: string
+          reason?: string
+          room_id?: string
+          round_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "score_events_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "score_events_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       votes: {
         Row: {

@@ -33,6 +33,9 @@ interface GameState {
     caught: boolean;
     isTie: boolean;
     top_voted: string[];
+    outcome: string;
+    points_awarded: Record<string, number>;
+    scores: Record<string, number>;
   } | null;
   hasVoted: boolean;
   spokeStatus: SpokeStatus | null;
@@ -52,6 +55,8 @@ interface GameActions {
   kickPlayer: (targetSessionId: string) => Promise<void>;
   leaveRoom: () => Promise<void>;
   finishGame: () => Promise<void>;
+  imposterGuess: (guess: string) => Promise<{ correct: boolean }>;
+  resetScores: () => Promise<void>;
   clearError: () => void;
   goHome: () => void;
   retryConnection: () => void;
@@ -473,6 +478,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       try {
         await engine.finishGame(state.sessionId, state.room.id);
         update(resetState());
+      } catch (e: unknown) { update({ error: (e as Error).message }); }
+    },
+    imposterGuess: async (guess: string) => {
+      if (!state.room) return { correct: false };
+      try {
+        const result = await engine.imposterGuess(state.sessionId, state.room.id, guess);
+        return result;
+      } catch (e: unknown) {
+        update({ error: (e as Error).message });
+        return { correct: false };
+      }
+    },
+    resetScores: async () => {
+      if (!state.room) return;
+      try {
+        await engine.resetScores(state.sessionId, state.room.id);
       } catch (e: unknown) { update({ error: (e as Error).message }); }
     },
     clearError: () => update({ error: null }),
