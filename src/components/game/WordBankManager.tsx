@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { t, type Language } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
-import { X, Plus, Upload, Search, BookOpen, Loader2 } from 'lucide-react';
+import { X, Plus, Upload, Search, BookOpen, Loader2, Trash2, ToggleLeft, ToggleRight, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { playClick } from '@/lib/sounds';
 
 interface Word {
@@ -11,31 +11,49 @@ interface Word {
   category: string;
   language: string;
   difficulty: string;
+  is_active: boolean;
+  normalized_text: string;
 }
 
 const CATEGORIES = ['objects', 'food', 'animals', 'jobs', 'places', 'sports', 'nature', 'other'];
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
+
+async function callWordBank<T = unknown>(action: string, params: Record<string, unknown> = {}): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('word-bank-manager', {
+    body: { action, ...params },
+  });
+  if (error) throw new Error(error.message || 'Word bank error');
+  if (data?.error) throw new Error(data.error);
+  return data as T;
+}
 
 function AddWordForm({ language, uiLang, onAdded }: { language: string; uiLang: Language; onAdded: () => void }) {
   const [word, setWord] = useState('');
   const [category, setCategory] = useState('objects');
   const [difficulty, setDifficulty] = useState('medium');
   const [adding, setAdding] = useState(false);
+  const [result, setResult] = useState<{ type: 'success' | 'duplicate' | 'error'; msg: string } | null>(null);
+  const isRtl = language === 'AR' || language === 'KU_CENTRAL';
 
   const handleAdd = async () => {
     if (!word.trim()) return;
     setAdding(true);
-    const { error } = await supabase.from('word_bank').insert({
-      word: word.trim(),
-      category,
-      difficulty,
-      language,
-    });
-    setAdding(false);
-    if (!error) {
-      setWord('');
-      onAdded();
+    setResult(null);
+    try {
+      const res = await callWordBank<{ status: string; word?: unknown }>('add-word', {
+        language, word: word.trim(), category, difficulty,
+      });
+      if (res.status === 'IGNORED_DUPLICATE') {
+        setResult({ type: 'duplicate', msg: t('wordbank.duplicate', uiLang) });
+      } else {
+        setResult({ type: 'success', msg: t('wordbank.wordAdded', uiLang) });
+        setWord('');
+        onAdded();
+      }
+    } catch (e: unknown) {
+      setResult({ type: 'error', msg: (e as Error).message });
     }
+    setAdding(false);
   };
 
   return (
@@ -45,7 +63,9 @@ function AddWordForm({ language, uiLang, onAdded }: { language: string; uiLang: 
         placeholder={t('wordbank.wordPlaceholder', uiLang)}
         value={word}
         onChange={e => setWord(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
         maxLength={50}
+        dir={isRtl ? 'rtl' : 'ltr'}
         className="w-full px-3 py-2 spooky-input text-sm"
       />
       <div className="flex gap-2">
@@ -76,6 +96,14 @@ function AddWordForm({ language, uiLang, onAdded }: { language: string; uiLang: 
         {adding ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
         {t('wordbank.addWord', uiLang)}
       </button>
+      {result && (
+        <p className={`text-xs text-center ${
+          result.type === 'success' ? 'text-accent' :
+          result.type === 'duplicate' ? 'text-primary' : 'text-destructive'
+        }`}>
+          {result.msg}
+        </p>
+      )}
     </div>
   );
 }
@@ -85,41 +113,30 @@ function BulkImportForm({ language, uiLang, onImported }: { language: string; ui
   const [category, setCategory] = useState('objects');
   const [difficulty, setDifficulty] = useState('medium');
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<{ addedCount: number; duplicateCount: number; invalidCount: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const isRtl = language === 'AR' || language === 'KU_CENTRAL';
 
   const handleImport = async () => {
-    const uniqueWords = [...new Set(text.split('\n').map(w => w.trim()).filter(w => w.length > 0 && w.length <= 50))];
-    if (uniqueWords.length === 0) return;
+    const lines = text.split('\n').map(w => w.trim()).filter(w => w.length > 0);
+    if (lines.length === 0) return;
     setImporting(true);
     setResult(null);
+    setError(null);
 
-    // Filter out words that already exist in the DB
-    const { data: existing } = await supabase.from('word_bank').select('word').eq('language', language).in('word', uniqueWords);
-    const existingSet = new Set((existing || []).map(e => e.word));
-    const newWords = uniqueWords.filter(w => !existingSet.has(w));
-
-    if (newWords.length === 0) {
-      setImporting(false);
-      setResult(t('wordbank.allDuplicates', uiLang));
-      return;
+    try {
+      const res = await callWordBank<{ addedCount: number; duplicateCount: number; invalidCount: number }>(
+        'bulk-add', { language, lines, category, difficulty }
+      );
+      setResult(res);
+      if (res.addedCount > 0) {
+        setText('');
+        onImported();
+      }
+    } catch (e: unknown) {
+      setError((e as Error).message);
     }
-
-    const rows = newWords.map(w => ({
-      word: w,
-      category,
-      difficulty,
-      language,
-    }));
-
-    const { error, data } = await supabase.from('word_bank').insert(rows).select();
     setImporting(false);
-    if (error) {
-      setResult(`Error: ${error.message}`);
-    } else {
-      setResult(t('wordbank.importSuccess', uiLang, { count: data?.length || newWords.length }));
-      setText('');
-      onImported();
-    }
   };
 
   return (
@@ -130,6 +147,7 @@ function BulkImportForm({ language, uiLang, onImported }: { language: string; ui
         value={text}
         onChange={e => setText(e.target.value)}
         rows={5}
+        dir={isRtl ? 'rtl' : 'ltr'}
         className="w-full px-3 py-2 spooky-input text-sm resize-none"
       />
       <div className="flex gap-2">
@@ -161,34 +179,112 @@ function BulkImportForm({ language, uiLang, onImported }: { language: string; ui
         {t('wordbank.import', uiLang)}
       </button>
       {result && (
-        <p className={`text-xs text-center ${result.startsWith('Error') ? 'text-destructive' : 'text-accent'}`}>
-          {result}
-        </p>
+        <div className="text-xs space-y-0.5 p-2 rounded-lg bg-accent/10 border border-accent/20">
+          <p className="text-accent font-semibold">✓ {t('wordbank.importSuccess', uiLang, { count: result.addedCount })}</p>
+          {result.duplicateCount > 0 && (
+            <p className="text-muted-foreground">↳ {result.duplicateCount} duplicates ignored</p>
+          )}
+          {result.invalidCount > 0 && (
+            <p className="text-muted-foreground">↳ {result.invalidCount} invalid entries skipped</p>
+          )}
+        </div>
       )}
+      {error && <p className="text-xs text-destructive text-center">{error}</p>}
     </div>
+  );
+}
+
+function ConfirmDeleteModal({ word, uiLang, onConfirm, onCancel }: {
+  word: Word; uiLang: Language; onConfirm: () => void; onCancel: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.9 }}
+        onClick={e => e.stopPropagation()}
+        className="w-full max-w-xs spooky-panel p-5 text-center space-y-3"
+      >
+        <AlertTriangle className="w-8 h-8 text-destructive mx-auto" />
+        <h3 className="font-display font-bold text-foreground text-sm uppercase tracking-wider">
+          Delete permanently?
+        </h3>
+        <p className="text-muted-foreground text-xs">
+          "{word.word}" will be removed. Consider deactivating instead to preserve game history.
+        </p>
+        <div className="flex gap-2">
+          <button onClick={() => { playClick(); onCancel(); }} className="flex-1 py-2 spooky-btn text-xs">
+            Cancel
+          </button>
+          <button onClick={() => { playClick(); onConfirm(); }} className="flex-1 py-2 rounded-lg bg-destructive text-destructive-foreground text-xs font-bold hover:bg-destructive/80 transition-colors">
+            Delete
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
 export function WordBankModal({ language, uiLang, onClose }: { language: string; uiLang: Language; onClose: () => void }) {
   const [words, setWords] = useState<Word[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'view' | 'add' | 'bulk'>('view');
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState('all');
   const [wordLang, setWordLang] = useState(language);
+  const [showInactive, setShowInactive] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Word | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const isRtl = wordLang === 'AR' || wordLang === 'KU_CENTRAL';
 
   const fetchWords = useCallback(async () => {
     setLoading(true);
-    let query = supabase.from('word_bank').select('*').eq('language', wordLang).eq('is_active', true).order('category').limit(500);
-    if (filterCat !== 'all') query = query.eq('category', filterCat);
-    const { data } = await query;
-    setWords((data as Word[]) || []);
+    try {
+      const res = await callWordBank<{ words: Word[]; total: number }>('list-words', {
+        language: wordLang,
+        category: filterCat !== 'all' ? filterCat : undefined,
+        query: search || undefined,
+        show_inactive: showInactive,
+        limit: 500,
+      });
+      setWords(res.words);
+      setTotal(res.total);
+    } catch {
+      setWords([]);
+    }
     setLoading(false);
-  }, [wordLang, filterCat]);
+  }, [wordLang, filterCat, search, showInactive]);
 
   useEffect(() => { fetchWords(); }, [fetchWords]);
 
-  const filtered = search ? words.filter(w => w.word.toLowerCase().includes(search.toLowerCase())) : words;
+  const handleToggleActive = async (word: Word) => {
+    setActionLoading(word.id);
+    try {
+      await callWordBank('toggle-active', { id: word.id, is_active: !word.is_active });
+      setWords(prev => prev.map(w => w.id === word.id ? { ...w, is_active: !w.is_active } : w));
+    } catch {}
+    setActionLoading(null);
+  };
+
+  const handleDelete = async (word: Word) => {
+    setActionLoading(word.id);
+    try {
+      await callWordBank('delete-word', { id: word.id });
+      setWords(prev => prev.filter(w => w.id !== word.id));
+      setTotal(prev => prev - 1);
+    } catch {}
+    setActionLoading(null);
+    setDeleteTarget(null);
+  };
 
   const tabs = [
     { id: 'view' as const, label: t('wordbank.tabView', uiLang), icon: BookOpen },
@@ -222,17 +318,22 @@ export function WordBankModal({ language, uiLang, onClose }: { language: string;
           </button>
         </div>
 
-        {/* Language filter for words */}
+        {/* Language tabs */}
         <div className="flex gap-1.5 mb-3 flex-wrap">
-          {['EN', 'AR', 'KU_CENTRAL', 'KU_KURMANJI'].map(l => (
+          {[
+            { code: 'EN', label: 'EN' },
+            { code: 'AR', label: 'AR' },
+            { code: 'KU_CENTRAL', label: 'KU' },
+            { code: 'KU_KURMANJI', label: 'KR' },
+          ].map(l => (
             <button
-              key={l}
-              onClick={() => { playClick(); setWordLang(l); }}
+              key={l.code}
+              onClick={() => { playClick(); setWordLang(l.code); setSearch(''); }}
               className={`px-2.5 py-1 rounded text-xs font-semibold transition-all uppercase tracking-wider ${
-                wordLang === l ? 'spooky-btn-gold' : 'spooky-inner border border-border text-muted-foreground hover:text-foreground'
+                wordLang === l.code ? 'spooky-btn-gold' : 'spooky-inner border border-border text-muted-foreground hover:text-foreground'
               }`}
             >
-              {l === 'EN' ? 'EN' : l === 'AR' ? 'AR' : l === 'KU_CENTRAL' ? 'KU' : 'KR'}
+              {l.label}
             </button>
           ))}
         </div>
@@ -266,12 +367,13 @@ export function WordBankModal({ language, uiLang, onClose }: { language: string;
                       placeholder={t('wordbank.search', uiLang)}
                       value={search}
                       onChange={e => setSearch(e.target.value)}
+                      dir={isRtl ? 'rtl' : 'ltr'}
                       className="w-full pl-8 pr-3 py-1.5 spooky-input text-xs"
                     />
                   </div>
                   <select
                     value={filterCat}
-                    onChange={e => { setFilterCat(e.target.value); }}
+                    onChange={e => setFilterCat(e.target.value)}
                     className="px-2 py-1.5 rounded-lg spooky-inner border border-border text-xs text-foreground bg-transparent"
                   >
                     <option value="all">{t('wordbank.allCategories', uiLang)}</option>
@@ -281,20 +383,66 @@ export function WordBankModal({ language, uiLang, onClose }: { language: string;
                   </select>
                 </div>
 
+                {/* Show inactive toggle */}
+                <button
+                  onClick={() => { playClick(); setShowInactive(!showInactive); }}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showInactive ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  {showInactive ? 'Showing all (incl. inactive)' : 'Showing active only'}
+                </button>
+
                 {loading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   </div>
-                ) : filtered.length === 0 ? (
+                ) : words.length === 0 ? (
                   <p className="text-center text-muted-foreground text-sm py-8">{t('wordbank.noWords', uiLang)}</p>
                 ) : (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">{t('wordbank.wordCount', uiLang, { count: filtered.length })}</p>
-                    <div className="grid grid-cols-2 gap-1.5 max-h-[40vh] overflow-y-auto pr-1">
-                      {filtered.map(w => (
-                        <div key={w.id} className="px-2.5 py-1.5 rounded-lg spooky-inner border border-border text-xs">
-                          <span className="text-foreground font-medium">{w.word}</span>
-                          <span className="text-muted-foreground/60 ml-1">· {w.category}</span>
+                    <p className="text-xs text-muted-foreground">{t('wordbank.wordCount', uiLang, { count: total })}</p>
+                    <div className="space-y-1 max-h-[40vh] overflow-y-auto pr-1" dir={isRtl ? 'rtl' : 'ltr'}>
+                      {words.map(w => (
+                        <div
+                          key={w.id}
+                          className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg spooky-inner border text-xs transition-all ${
+                            w.is_active ? 'border-border' : 'border-destructive/20 opacity-60'
+                          }`}
+                        >
+                          <span className={`flex-1 font-medium ${w.is_active ? 'text-foreground' : 'text-muted-foreground line-through'}`}>
+                            {w.word}
+                          </span>
+                          <span className="text-muted-foreground/50 text-[10px] shrink-0">{w.category}</span>
+
+                          {/* Toggle active */}
+                          <button
+                            onClick={() => { playClick(); handleToggleActive(w); }}
+                            disabled={actionLoading === w.id}
+                            className={`shrink-0 p-1 rounded transition-colors ${
+                              w.is_active
+                                ? 'text-accent hover:text-accent/70'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                            title={w.is_active ? 'Deactivate' : 'Activate'}
+                          >
+                            {actionLoading === w.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : w.is_active ? (
+                              <ToggleRight className="w-3.5 h-3.5" />
+                            ) : (
+                              <ToggleLeft className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+
+                          {/* Delete */}
+                          <button
+                            onClick={() => { playClick(); setDeleteTarget(w); }}
+                            disabled={actionLoading === w.id}
+                            className="shrink-0 p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -317,6 +465,18 @@ export function WordBankModal({ language, uiLang, onClose }: { language: string;
           </AnimatePresence>
         </div>
       </motion.div>
+
+      {/* Delete confirmation modal */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <ConfirmDeleteModal
+            word={deleteTarget}
+            uiLang={uiLang}
+            onConfirm={() => handleDelete(deleteTarget)}
+            onCancel={() => setDeleteTarget(null)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
