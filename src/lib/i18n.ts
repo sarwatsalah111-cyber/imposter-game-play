@@ -167,7 +167,7 @@ const translations: Record<Language, Record<string, string>> = {
     'about.developedBy': 'تطوير بواسطة',
   },
   KU_CENTRAL: {
-    'app.title': 'دەسکاری',
+    'app.title': 'فێڵباز',
     'app.subtitle': 'ساختەکە بدۆزەوە لەنێوتان',
     'home.create': 'دروستکردنی ژوور',
     'home.join': 'چوونە ژوورێک',
