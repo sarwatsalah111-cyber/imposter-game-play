@@ -348,7 +348,6 @@ Deno.serve(async (req) => {
           'reveal': 'discussion',
           'discussion': 'voting',
           'voting': 'results',
-          'results': 'lobby',
         };
 
         if (room.phase === phase) {
@@ -359,14 +358,21 @@ Deno.serve(async (req) => {
           return json({ error: 'Invalid phase transition' }, 400);
         }
 
-        // When transitioning to results, auto-finalize the round scoring
+        // When transitioning to results, auto-finalize the round scoring and close the game
         if (phase === 'results') {
           await finalizeRound(supabase, room_id, room.match_id, room.current_round);
         }
 
-        await supabase.from('rooms').update({
+        const updateData: Record<string, unknown> = {
           phase, updated_at: new Date().toISOString(),
-        }).eq('id', room_id);
+        };
+        // Close the room when results are shown — game is finished
+        if (phase === 'results') {
+          updateData.status = 'closed';
+          updateData.closed_at = new Date().toISOString();
+        }
+
+        await supabase.from('rooms').update(updateData).eq('id', room_id);
 
         await supabase.from('room_events').insert({
           room_id, event_type: 'phase_changed', session_id, data: { from: room.phase, to: phase },
@@ -498,9 +504,11 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Advance directly to results
+          // Advance directly to results and close the game
           await supabase.from('rooms').update({
-            phase: 'results', updated_at: new Date().toISOString(),
+            phase: 'results', status: 'closed',
+            updated_at: new Date().toISOString(),
+            closed_at: new Date().toISOString(),
           }).eq('id', room_id);
 
           await supabase.from('room_events').insert({
