@@ -54,9 +54,9 @@ function RevealPhase() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
       className="flex-1 flex flex-col items-center justify-center gap-6 px-4"
     >
       <div className="text-center">
@@ -67,9 +67,9 @@ function RevealPhase() {
       </div>
 
       <motion.div
-        initial={{ rotateY: 180, opacity: 0 }}
+        initial={{ rotateY: 90, opacity: 0 }}
         animate={{ rotateY: 0, opacity: 1 }}
-        transition={{ duration: 0.5, type: 'spring', stiffness: 200, damping: 20 }}
+        transition={{ duration: 0.25, type: 'spring', stiffness: 300, damping: 25 }}
         className={`w-full max-w-xs p-8 spooky-panel spider-corner text-center ${
           isImposter ? 'glow-red' : 'glow-purple'
         }`}
@@ -253,8 +253,8 @@ function SpeakingQueuePhase() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.25 }}
-      className="flex-1 flex flex-col gap-4 px-4"
+      transition={{ duration: 0.12 }}
+      className="flex-1 flex flex-col gap-4 px-4 will-change-[opacity]"
     >
       <div className="text-center pt-4">
         <MessageCircle className="w-10 h-10 text-primary mx-auto mb-2" />
@@ -315,9 +315,9 @@ function SpeakingQueuePhase() {
           return (
             <motion.div
               key={sid}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: i * 0.02, duration: 0.1 }}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-all ${
                 isCurrent
                   ? 'spooky-panel border-primary/60 shadow-[0_0_16px_hsl(280_75%_55%/0.25)]'
@@ -432,8 +432,8 @@ function VotingPhase() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.25 }}
-      className="flex-1 flex flex-col gap-4 px-4"
+      transition={{ duration: 0.12 }}
+      className="flex-1 flex flex-col gap-4 px-4 will-change-[opacity]"
     >
       <div className="text-center pt-4">
         <Vote className="w-10 h-10 text-accent mx-auto mb-2" />
@@ -467,9 +467,9 @@ function VotingPhase() {
           {activePlayers.map((player, i) => (
             <motion.button
               key={player.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: i * 0.02, duration: 0.1 }}
               onClick={() => vote(player.session_id)}
               className="w-full flex items-center gap-3 px-4 py-4 rounded-lg spooky-inner border border-border hover:border-destructive/50 hover:shadow-[0_0_12px_hsl(0_85%_55%/0.15)] transition-all active:scale-[0.98]"
             >
@@ -565,8 +565,8 @@ function ResultsPhase() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className="flex-1 flex flex-col items-center gap-4 px-4 pt-2 overflow-y-auto pb-4"
+      transition={{ duration: 0.12 }}
+      className="flex-1 flex flex-col items-center gap-4 px-4 pt-2 overflow-y-auto pb-4 will-change-[opacity]"
     >
       <div className="flex gap-1">
         {[1, 2, 3].map(i => (
@@ -726,7 +726,7 @@ export function GameScreen() {
           </div>
         )}
 
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="popLayout">
           {phase === 'reveal' && <RevealPhase key="reveal" />}
           {phase === 'discussion' && <SpeakingQueuePhase key="discussion" />}
           {phase === 'voting' && <VotingPhase key="voting" />}
