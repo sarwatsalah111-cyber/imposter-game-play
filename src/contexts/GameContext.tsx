@@ -93,6 +93,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const roomIdRef = useRef<string | null>(null);
   const sessionIdRef = useRef(state.sessionId);
+  const phaseRef = useRef(state.phase);
 
   useEffect(() => {
     roomIdRef.current = state.room?.id ?? null;
@@ -100,6 +101,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     sessionIdRef.current = state.sessionId;
   }, [state.sessionId]);
+  useEffect(() => {
+    phaseRef.current = state.phase;
+  }, [state.phase]);
 
   const update = useCallback((partial: Partial<GameState>) => {
     setState(prev => ({ ...prev, ...partial }));
@@ -280,18 +284,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-    // Polling fallback + host migration watchdog every 3s
+    // Polling fallback + host migration watchdog
+    // Use a faster interval (1.5s) for spoke status during discussion
+    const spokePollRef_inner = setInterval(() => {
+      if (phaseRef.current === 'discussion') {
+        refreshSpokeStatus(roomId);
+      }
+    }, 1500);
+
     playerPollRef.current = setInterval(async () => {
       fetchPlayers(roomId);
       fetchRoom(roomId);
-
-      // Poll spoke status during discussion phase for reliable sync
-      setState(prev => {
-        if (prev.phase === 'discussion') {
-          refreshSpokeStatus(roomId);
-        }
-        return prev;
-      });
 
       // Host migration watchdog
       setState(prev => {
@@ -301,12 +304,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         if (hostPlayer.is_online) return prev;
         const elapsed = Date.now() - new Date(hostPlayer.last_heartbeat).getTime();
         if (elapsed > 25000) {
-          // Check if we're the oldest connected player
           const onlinePlayers = prev.players.filter(p => p.is_online).sort((a, b) =>
             new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime()
           );
           if (onlinePlayers.length > 0 && onlinePlayers[0].session_id === sessionIdRef.current) {
-            // Trigger migration (fire and forget from inside setState — schedule it)
             setTimeout(() => {
               engine.migrateHost(sessionIdRef.current, roomId).catch(() => {});
             }, 0);
@@ -325,6 +326,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       supabase.removeChannel(roomChannel);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (playerPollRef.current) clearInterval(playerPollRef.current);
+      clearInterval(spokePollRef_inner);
     };
   }, [state.room?.id]);
 
