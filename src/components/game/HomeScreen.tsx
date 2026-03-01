@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t, LANGUAGES, type Language } from '@/lib/i18n';
-import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, BookOpen } from 'lucide-react';
+import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, BookOpen, ChevronDown } from 'lucide-react';
 import { SpyLogo } from './SpyLogo';
 import { startAmbient, stopAmbient, playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
 import { getDefaultSettings, saveDefaultSettings, type DefaultGameSettings } from '@/lib/session';
@@ -268,6 +268,7 @@ export function HomeScreen() {
   const [showAbout, setShowAbout] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showWordBank, setShowWordBank] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
 
   // Start ambient sound on mount, stop on unmount
   useEffect(() => {
@@ -303,6 +304,42 @@ export function HomeScreen() {
 
       {/* Top-right menu buttons */}
       <div className="fixed top-4 right-4 z-20 flex gap-2 safe-area-top">
+        {/* Language dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => { playClick(); setShowLangMenu(!showLangMenu); }}
+            className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+            title={t('home.language', language)}
+          >
+            <Globe className="w-5 h-5" />
+          </button>
+          <AnimatePresence>
+            {showLangMenu && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: -4 }}
+                className="absolute right-0 top-12 spooky-panel border border-border rounded-lg p-1.5 min-w-[140px] z-30"
+              >
+                {LANGUAGES.map(lang => (
+                  <button
+                    key={lang.code}
+                    onClick={() => { playClick(); setLanguage(lang.code); setShowLangMenu(false); }}
+                    className={`w-full px-3 py-2 rounded-md text-xs font-semibold transition-all text-left ${
+                      language === lang.code
+                        ? 'spooky-btn-gold'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                    }`}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {/* Click outside to close */}
+          {showLangMenu && <div className="fixed inset-0 z-20" onClick={() => setShowLangMenu(false)} />}
+        </div>
         <button
           onClick={() => { playClick(); setShowHowTo(true); }}
           className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
@@ -341,23 +378,6 @@ export function HomeScreen() {
             {t('app.subtitle', language)}
           </p>
         </motion.div>
-
-        {/* Language selector */}
-        <div className="flex gap-2 flex-wrap justify-center">
-          {LANGUAGES.map(lang => (
-            <button
-              key={lang.code}
-              onClick={() => { playClick(); setLanguage(lang.code); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all uppercase tracking-wider ${
-                language === lang.code
-                  ? 'spooky-btn-gold'
-                  : 'spooky-inner border border-border text-muted-foreground hover:text-foreground hover:border-primary/40'
-              }`}
-            >
-              {lang.label}
-            </button>
-          ))}
-        </div>
 
         {/* Main panel */}
         <div className="w-full spooky-panel spider-corner p-5 scratched-texture">
