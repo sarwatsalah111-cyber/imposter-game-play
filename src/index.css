@@ -1,9 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @font-face {
-  font-family: 'UniMahanAysha';
-  src: url('/fonts/UniMahanAysha.ttf') format('truetype');
-  font-weight: normal;
+  font-family: 'PeshangDes';
+  src: url('/fonts/Peshang_Des_1_bold.ttf') format('truetype');
+  font-weight: bold;
   font-style: normal;
   font-display: swap;
 }
@@ -291,5 +291,5 @@
 /* Kurdish Sorani font override */
 .font-sorani,
 .font-sorani * {
-  font-family: 'UniMahanAysha', sans-serif !important;
+  font-family: 'PeshangDes', sans-serif !important;
 }
