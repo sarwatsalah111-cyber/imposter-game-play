@@ -546,11 +546,9 @@ function VotingPhase() {
 }
 
 function ResultsPhase() {
-  const { results, players, room, language, isHost, sessionId, startGame, goHome, finishGame, resetScores } = useGame();
+  const { results, players, room, language, isHost, sessionId, goHome } = useGame();
   const soundPlayedRef = useRef(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const onlinePlayersCount = players.filter(p => p.is_online).length;
-  const canStartNextRound = !!room && onlinePlayersCount >= room.min_players;
 
   useEffect(() => {
     if (results && !soundPlayedRef.current) {
@@ -581,23 +579,12 @@ function ResultsPhase() {
             <ArrowRight className="w-4 h-4 rotate-180" />
             {t('game.results', language)}
           </button>
-          {isHost && (
-            <>
-              <button
-                onClick={() => { if (canStartNextRound) startGame(); }}
-                disabled={!canStartNextRound}
-                className="w-full py-3 spooky-btn-gold spooky-btn text-sm glow-gold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {canStartNextRound ? t('game.nextRound', language) : t('lobby.minPlayers', language, { min: room?.min_players ?? 3 })} <ArrowRight className="w-4 h-4" />
-              </button>
-              <button
-                onClick={finishGame}
-                className="w-full py-3 spooky-btn text-sm flex items-center justify-center gap-2"
-              >
-                <Home className="w-4 h-4" /> {t('game.finish', language)}
-              </button>
-            </>
-          )}
+          <button
+            onClick={() => { playClick(); goHome(); }}
+            className="w-full py-3 spooky-btn text-sm flex items-center justify-center gap-2"
+          >
+            <Home className="w-4 h-4" /> {t('game.finish', language)}
+          </button>
         </div>
       </motion.div>
     );
@@ -697,28 +684,12 @@ function ResultsPhase() {
         {t('game.leaderboard', language)}
       </button>
 
-      {isHost && (
-        <div className="w-full max-w-xs flex flex-col gap-2">
-          <button
-            onClick={() => { if (canStartNextRound) startGame(); }}
-            disabled={!canStartNextRound}
-            className="w-full py-3 spooky-btn-gold spooky-btn text-sm glow-gold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {canStartNextRound ? t('game.nextRound', language) : t('lobby.minPlayers', language, { min: room?.min_players ?? 3 })} <ArrowRight className="w-4 h-4" />
-          </button>
-          <button
-            onClick={finishGame}
-            className="w-full py-3 spooky-btn text-sm flex items-center justify-center gap-2"
-          >
-            <Home className="w-4 h-4" />
-            {t('game.finish', language)}
-          </button>
-        </div>
-      )}
-
-      {!isHost && (
-        <p className="text-muted-foreground text-sm animate-pulse font-display uppercase tracking-wider">{t('lobby.waiting', language)}</p>
-      )}
+      <button
+        onClick={() => { playClick(); goHome(); }}
+        className="w-full max-w-xs py-3 spooky-btn text-sm flex items-center justify-center gap-2"
+      >
+        <Home className="w-4 h-4" /> {t('game.finish', language)}
+      </button>
     </motion.div>
   );
 }
