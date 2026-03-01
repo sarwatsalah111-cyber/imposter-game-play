@@ -55,6 +55,7 @@ interface GameActions {
   kickPlayer: (targetSessionId: string) => Promise<void>;
   leaveRoom: () => Promise<void>;
   finishGame: () => Promise<void>;
+  playAgain: () => Promise<void>;
   imposterGuess: (guess: string) => Promise<{ correct: boolean }>;
   resetScores: () => Promise<void>;
   clearError: () => void;
@@ -515,6 +516,37 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       } catch (e: unknown) { update({ error: (e as Error).message }); }
     },
     clearError: () => update({ error: null }),
+    playAgain: async () => {
+      if (!state.room) return;
+      const settings: Record<string, unknown> = {
+        max_players: state.room.max_players,
+        min_players: state.room.min_players,
+        total_rounds: state.room.total_rounds,
+        voting_time: state.room.voting_time,
+        discussion_time: state.room.discussion_time,
+      };
+      // Reset local state first
+      update(resetState());
+      // Create new room with same settings & language
+      setLoadingWithTimeout(true);
+      update({ error: null });
+      try {
+        const { room } = await engine.createRoom(state.sessionId, state.nickname, state.room.language as Language, settings);
+        const r = room as unknown as Room;
+        const { data: players } = await supabase.from('room_players').select('*').eq('room_id', r.id);
+        if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+        update({
+          room: r,
+          phase: 'lobby',
+          isHost: true,
+          loading: false,
+          players: (players as unknown as RoomPlayer[]) || [],
+        });
+      } catch (e: unknown) {
+        if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+        update({ error: (e as Error).message, loading: false });
+      }
+    },
     goHome: () => update(resetState()),
     retryConnection: () => {
       if (state.room) {
