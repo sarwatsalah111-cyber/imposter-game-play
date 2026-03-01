@@ -546,7 +546,7 @@ function VotingPhase() {
 }
 
 function ResultsPhase() {
-  const { results, players, room, language, isHost, sessionId, goHome } = useGame();
+  const { results, players, room, language, isHost, sessionId, goHome, startGame } = useGame();
   const soundPlayedRef = useRef(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
@@ -683,6 +683,18 @@ function ResultsPhase() {
         <Trophy className="w-4 h-4" />
         {t('game.leaderboard', language)}
       </button>
+
+      {/* Next Round button — only show if more rounds remain */}
+      {isHost && room && room.current_round < room.total_rounds && (
+        <button
+          onClick={() => { playClick(); startGame(); }}
+          className="w-full max-w-xs py-3 spooky-btn text-sm glow-purple flex items-center justify-center gap-2"
+        >
+          <ArrowRight className="w-4 h-4" />
+          {t('game.round', language)} {room.current_round + 1}
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      )}
 
       <button
         onClick={() => { playClick(); goHome(); }}

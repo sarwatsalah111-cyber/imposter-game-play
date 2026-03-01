@@ -347,14 +347,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, [state.room?.id]);
 
-  // Fetch reveal when phase changes to reveal or discussion (reconnection recovery)
+  // Fetch reveal when phase changes to reveal or discussion, or when reveal is cleared (new round)
   useEffect(() => {
     if ((state.phase === 'reveal' || state.phase === 'discussion') && state.room && !state.reveal) {
       engine.getReveal(state.sessionId, state.room.id)
         .then(reveal => update({ reveal }))
         .catch(() => {});
     }
-  }, [state.phase, state.room?.id]);
+  }, [state.phase, state.room?.id, state.reveal]);
 
   // Fetch spoke status when entering discussion phase
   useEffect(() => {
