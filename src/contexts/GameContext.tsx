@@ -283,6 +283,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     // Polling fallback + host migration watchdog every 3s
     playerPollRef.current = setInterval(async () => {
       fetchPlayers(roomId);
+      fetchRoom(roomId);
 
       // Host migration watchdog
       setState(prev => {
@@ -419,7 +420,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       try {
         await engine.startGame(state.sessionId, state.room.id);
         if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
-        update({ loading: false, reveal: null, results: null, hasVoted: false, spokeStatus: null, spokenPlayers: [] });
+        // Optimistically set phase to reveal so host transitions immediately
+        update({ loading: false, phase: 'reveal', reveal: null, results: null, hasVoted: false, spokeStatus: null, spokenPlayers: [] });
       } catch (e: unknown) {
         if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
         update({ error: (e as Error).message, loading: false });
