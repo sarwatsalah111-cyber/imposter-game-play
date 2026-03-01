@@ -297,15 +297,15 @@ export function WordBankModal({ language, uiLang, onClose }: { language: string;
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-background/80 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
+        initial={{ y: 40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 40, opacity: 0 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-md spooky-panel p-5 max-h-[85vh] flex flex-col"
+        className="w-full sm:max-w-md spooky-panel p-4 sm:p-5 max-h-[95vh] sm:max-h-[85vh] flex flex-col rounded-t-2xl sm:rounded-xl"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
@@ -405,20 +405,19 @@ export function WordBankModal({ language, uiLang, onClose }: { language: string;
                       {words.map(w => (
                         <div
                           key={w.id}
-                          className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg spooky-inner border text-xs transition-all ${
+                          className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg spooky-inner border text-xs transition-all ${
                             w.is_active ? 'border-border' : 'border-destructive/20 opacity-60'
                           }`}
                         >
-                          <span className={`flex-1 font-medium ${w.is_active ? 'text-foreground' : 'text-muted-foreground line-through'}`}>
+                          <span className={`flex-1 min-w-0 truncate font-medium ${w.is_active ? 'text-foreground' : 'text-muted-foreground line-through'}`}>
                             {w.word}
                           </span>
-                          <span className="text-muted-foreground/50 text-[10px] shrink-0">{w.category}</span>
 
                           {/* Toggle active */}
                           <button
                             onClick={() => { playClick(); handleToggleActive(w); }}
                             disabled={actionLoading === w.id}
-                            className={`shrink-0 p-1 rounded transition-colors ${
+                            className={`shrink-0 w-7 h-7 flex items-center justify-center rounded transition-colors ${
                               w.is_active
                                 ? 'text-accent hover:text-accent/70'
                                 : 'text-muted-foreground hover:text-foreground'
@@ -426,11 +425,11 @@ export function WordBankModal({ language, uiLang, onClose }: { language: string;
                             title={w.is_active ? 'Deactivate' : 'Activate'}
                           >
                             {actionLoading === w.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             ) : w.is_active ? (
-                              <ToggleRight className="w-3.5 h-3.5" />
+                              <ToggleRight className="w-4 h-4" />
                             ) : (
-                              <ToggleLeft className="w-3.5 h-3.5" />
+                              <ToggleLeft className="w-4 h-4" />
                             )}
                           </button>
 
@@ -438,10 +437,10 @@ export function WordBankModal({ language, uiLang, onClose }: { language: string;
                           <button
                             onClick={() => { playClick(); setDeleteTarget(w); }}
                             disabled={actionLoading === w.id}
-                            className="shrink-0 p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                            className="shrink-0 w-7 h-7 flex items-center justify-center rounded text-muted-foreground hover:text-destructive transition-colors"
                             title="Delete"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       ))}
