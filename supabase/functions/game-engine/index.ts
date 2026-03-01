@@ -331,7 +331,14 @@ Deno.serve(async (req) => {
           'reveal': 'discussion',
           'discussion': 'voting',
           'voting': 'results',
+          'results': 'lobby',
         };
+
+        // Idempotent: if already in the target phase, return success (handles race conditions)
+        if (room.phase === phase) {
+          return json({ success: true });
+        }
+
         if (validTransitions[room.phase] !== phase) {
           return json({ error: 'Invalid phase transition' }, 400);
         }
