@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { playVictory, playGameOver } from '@/lib/sounds';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
@@ -324,6 +325,19 @@ function VotingPhase() {
 
 function ResultsPhase() {
   const { results, players, room, language, isHost, startGame, goHome, finishGame } = useGame();
+  const soundPlayedRef = useRef(false);
+
+  useEffect(() => {
+    if (results && !soundPlayedRef.current) {
+      soundPlayedRef.current = true;
+      if (results.caught) {
+        playVictory();
+      } else {
+        playGameOver();
+      }
+    }
+  }, [results]);
+
   if (!results) return <div className="flex-1 flex items-center justify-center"><div className="text-muted-foreground animate-pulse font-display uppercase tracking-wider">Loading...</div></div>;
 
   const imposter = players.find(p => p.session_id === results.imposter_session_id);
