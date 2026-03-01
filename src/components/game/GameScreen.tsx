@@ -338,34 +338,45 @@ function SpeakingQueuePhase() {
 
       {/* Action area */}
       {!allDone ? (
-        isMyTurn ? (
+        <div className="space-y-2">
           <motion.button
             key="speak-btn"
             initial={{ scale: 0.95 }}
-            animate={justSpoke
-              ? { scale: [1, 1.08, 1], boxShadow: ['0 0 0px hsl(280 75% 55% / 0)', '0 0 30px hsl(280 75% 55% / 0.6)', '0 0 0px hsl(280 75% 55% / 0)'] }
-              : { scale: [1, 1.03, 1] }
+            animate={isMyTurn && justSpoke
+              ? { scale: [1, 1.08, 1], boxShadow: ['0 0 0px hsl(var(--primary) / 0)', '0 0 30px hsl(var(--primary) / 0.6)', '0 0 0px hsl(var(--primary) / 0)'] }
+              : isMyTurn
+                ? { scale: [1, 1.03, 1] }
+                : { scale: 1 }
             }
-            transition={justSpoke ? { duration: 0.6 } : { repeat: Infinity, duration: 1.5 }}
+            transition={isMyTurn
+              ? (justSpoke ? { duration: 0.6 } : { repeat: Infinity, duration: 1.5 })
+              : { duration: 0.2 }
+            }
             onClick={handleSpoke}
-            disabled={speaking}
-            className="w-full py-4 spooky-btn text-base glow-purple flex items-center justify-center gap-2 disabled:opacity-70"
+            disabled={!isMyTurn || speaking}
+            className="w-full py-4 spooky-btn text-base glow-purple flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {speaking ? (
               <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
+            ) : isMyTurn ? (
               <Mic className="w-5 h-5" />
+            ) : (
+              <MicOff className="w-5 h-5" />
             )}
-            {speaking ? '...' : t('game.iSpoke', language)}
+            {isMyTurn
+              ? (speaking ? '...' : t('game.iSpoke', language))
+              : t('game.waitingTurn', language)}
           </motion.button>
-        ) : (
-          <div className="w-full py-4 rounded-xl spooky-inner border border-border text-muted-foreground font-display font-medium text-center text-sm uppercase tracking-wider">
-            {currentTurnPlayer && (() => {
-              const cp = activePlayers.find(p => p.session_id === currentTurnPlayer);
-              return cp ? `${cp.nickname} ${t('game.isSpeaking', language)}...` : t('game.waitingTurn', language);
-            })()}
-          </div>
-        )
+
+          {!isMyTurn && currentTurnPlayer && (() => {
+            const cp = activePlayers.find(p => p.session_id === currentTurnPlayer);
+            return (
+              <div className="w-full py-3 rounded-xl spooky-inner border border-border text-muted-foreground font-display font-medium text-center text-sm uppercase tracking-wider">
+                {cp ? `${cp.nickname} ${t('game.isSpeaking', language)}...` : t('game.waitingTurn', language)}
+              </div>
+            );
+          })()}
+        </div>
       ) : (
         <div className="w-full py-4 spooky-panel text-accent font-display font-medium text-center text-sm uppercase tracking-wider animate-pulse">
           {t('game.allSpoken', language)}
