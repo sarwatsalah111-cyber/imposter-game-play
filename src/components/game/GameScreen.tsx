@@ -3,7 +3,7 @@ import { playVictory, playGameOver, playClick, vibrate } from '@/lib/sounds';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Eye, EyeOff, MessageCircle, Vote, Trophy, Timer, ArrowRight, Home, CheckCircle, Target, Mic, MicOff, Skull, Star, Loader2, LogOut, Zap, Send } from 'lucide-react';
+import { Eye, EyeOff, MessageCircle, Vote, Trophy, Timer, ArrowRight, Home, CheckCircle, Target, Mic, MicOff, Skull, Star, Loader2, LogOut, Zap, Send, RotateCcw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { LeaderboardScreen } from './LeaderboardScreen';
 
@@ -546,7 +546,7 @@ function VotingPhase() {
 }
 
 function ResultsPhase() {
-  const { results, players, room, language, isHost, sessionId, goHome, startGame } = useGame();
+  const { results, players, room, language, isHost, sessionId, goHome, startGame, playAgain } = useGame();
   const soundPlayedRef = useRef(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
@@ -693,6 +693,17 @@ function ResultsPhase() {
           <ArrowRight className="w-4 h-4" />
           {t('game.round', language)} {room.current_round + 1}
           <ArrowRight className="w-4 h-4" />
+        </button>
+      )}
+
+      {/* Play Again — only on final round */}
+      {isHost && room && room.current_round >= room.total_rounds && (
+        <button
+          onClick={() => { playClick(); playAgain(); }}
+          className="w-full max-w-xs py-3 spooky-btn text-sm glow-purple flex items-center justify-center gap-2"
+        >
+          <RotateCcw className="w-4 h-4" />
+          {t('game.playAgain', language)}
         </button>
       )}
 
