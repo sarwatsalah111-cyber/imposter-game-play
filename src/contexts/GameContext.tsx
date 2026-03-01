@@ -408,7 +408,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           });
           return { ...prev, room: updated as Room };
         });
-      } catch (e: unknown) { update({ error: (e as Error).message }); }
+      } catch {
+        // Settings update failures are non-critical; silently ignore
+      }
     },
     startGame: async () => {
       if (!state.room) return;
