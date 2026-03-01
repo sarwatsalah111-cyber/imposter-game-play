@@ -219,6 +219,7 @@ export type Database = {
           id: string
           is_active: boolean
           language: string
+          normalized_text: string
           word: string
         }
         Insert: {
@@ -227,6 +228,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           language?: string
+          normalized_text: string
           word: string
         }
         Update: {
@@ -235,6 +237,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           language?: string
+          normalized_text?: string
           word?: string
         }
         Relationships: []
@@ -300,7 +303,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      normalize_word_text: {
+        Args: { input_language: string; input_text: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
