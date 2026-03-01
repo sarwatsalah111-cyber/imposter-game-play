@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t, LANGUAGES, type Language } from '@/lib/i18n';
-import { Users, Globe, HelpCircle, Info, X, ChevronRight } from 'lucide-react';
+import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate } from 'lucide-react';
 import { SpyLogo } from './SpyLogo';
-import { startAmbient, stopAmbient, playClick } from '@/lib/sounds';
+import { startAmbient, stopAmbient, playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
+import { getDefaultSettings, saveDefaultSettings, type DefaultGameSettings } from '@/lib/session';
 
 function HowToPlayModal({ language, onClose }: { language: Language; onClose: () => void }) {
   const steps = [
@@ -113,12 +114,158 @@ function AboutModal({ language, onClose }: { language: Language; onClose: () => 
   );
 }
 
+function SettingRow({ label, value, onChange, min, max, step = 1, suffix = '' }: {
+  label: string; value: number; onChange: (v: number) => void;
+  min: number; max: number; step?: number; suffix?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2.5">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => { playClick(); onChange(Math.max(min, value - step)); }}
+          className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-foreground hover:border-primary/40 transition-colors"
+        >
+          <Minus className="w-3 h-3" />
+        </button>
+        <span className="font-display font-bold text-accent min-w-[48px] text-center">
+          {value}{suffix}
+        </span>
+        <button
+          onClick={() => { playClick(); onChange(Math.min(max, value + step)); }}
+          className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-foreground hover:border-primary/40 transition-colors"
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SettingsModal({ language, onClose }: { language: Language; onClose: () => void }) {
+  const [settings, setSettings] = useState<DefaultGameSettings>(getDefaultSettings());
+  const [soundOn, setSoundOn] = useState(isSoundEnabled());
+  const [vibrationOn, setVibrationOn] = useState(isVibrationEnabled());
+  const [saved, setSaved] = useState(false);
+
+  const updateSetting = (key: keyof DefaultGameSettings, value: number) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = () => {
+    saveDefaultSettings(settings);
+    setSoundEnabled(soundOn);
+    setVibrationEnabled(vibrationOn);
+    if (!soundOn) stopAmbient();
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  const handleReset = () => {
+    const defaults: DefaultGameSettings = { max_players: 8, total_rounds: 3, voting_time: 45, discussion_time: 90 };
+    setSettings(defaults);
+    playClick();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm spooky-panel p-5 max-h-[80vh] overflow-y-auto"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple flex items-center gap-2">
+            <Settings className="w-5 h-5 text-primary" />
+            {t('settings.title', language)}
+          </h2>
+          <button onClick={() => { playClick(); onClose(); }} className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="space-y-1 mb-4">
+          <SettingRow
+            label={t('lobby.maxPlayers', language)}
+            value={settings.max_players}
+            onChange={v => updateSetting('max_players', v)}
+            min={3} max={22}
+          />
+          <SettingRow
+            label={t('lobby.rounds', language)}
+            value={settings.total_rounds}
+            onChange={v => updateSetting('total_rounds', v)}
+            min={1} max={10}
+          />
+          <SettingRow
+            label={t('lobby.votingTime', language)}
+            value={settings.voting_time}
+            onChange={v => updateSetting('voting_time', v)}
+            min={15} max={120} step={5} suffix="s"
+          />
+          <SettingRow
+            label={t('lobby.discussionTime', language)}
+            value={settings.discussion_time}
+            onChange={v => updateSetting('discussion_time', v)}
+            min={30} max={300} step={10} suffix="s"
+          />
+        </div>
+
+        <div className="border-t border-border pt-3 mb-4 space-y-1">
+          <div className="flex items-center justify-between gap-3 py-2">
+            <span className="text-sm text-muted-foreground flex items-center gap-2">
+              {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              {t('settings.sound', language)}
+            </span>
+            <button
+              onClick={() => { playClick(); setSoundOn(!soundOn); }}
+              className={`w-12 h-7 rounded-full transition-all relative ${soundOn ? 'bg-accent' : 'bg-muted border border-border'}`}
+            >
+              <div className={`w-5 h-5 rounded-full bg-foreground absolute top-1 transition-all ${soundOn ? 'left-6' : 'left-1'}`} />
+            </button>
+          </div>
+          <div className="flex items-center justify-between gap-3 py-2">
+            <span className="text-sm text-muted-foreground flex items-center gap-2">
+              <Vibrate className="w-4 h-4" />
+              {t('settings.vibration', language)}
+            </span>
+            <button
+              onClick={() => { playClick(); setVibrationOn(!vibrationOn); }}
+              className={`w-12 h-7 rounded-full transition-all relative ${vibrationOn ? 'bg-accent' : 'bg-muted border border-border'}`}
+            >
+              <div className={`w-5 h-5 rounded-full bg-foreground absolute top-1 transition-all ${vibrationOn ? 'left-6' : 'left-1'}`} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button onClick={handleReset} className="flex-1 py-2.5 spooky-btn text-xs">
+            {t('settings.reset', language)}
+          </button>
+          <button onClick={() => { playClick(); handleSave(); }} className="flex-1 py-2.5 spooky-btn-gold spooky-btn text-xs">
+            {saved ? '✓ ' + t('settings.saved', language) : t('settings.save', language)}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export function HomeScreen() {
   const { nickname, setNickname, language, setLanguage, createRoom, joinRoom, loading, error, clearError } = useGame();
   const [mode, setMode] = useState<'home' | 'create' | 'join'>('home');
   const [roomCode, setRoomCode] = useState('');
   const [showHowTo, setShowHowTo] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Start ambient sound on mount, stop on unmount
   useEffect(() => {
@@ -135,7 +282,7 @@ export function HomeScreen() {
 
   const handleCreate = async () => {
     if (!nickname.trim()) return;
-    await createRoom();
+    await createRoom({ ...getDefaultSettings() } as Record<string, unknown>);
   };
 
   const handleJoin = async () => {
@@ -250,6 +397,13 @@ export function HomeScreen() {
                 {t('home.create', language)}
               </button>
               <button
+                onClick={() => { playClick(); setShowSettings(true); }}
+                className="w-full py-4 spooky-btn text-base flex items-center justify-center gap-2"
+              >
+                <Settings className="w-5 h-5" />
+                {t('settings.title', language)}
+              </button>
+              <button
                 onClick={() => { playClick(); if (nickname.trim()) setMode('join'); }}
                 disabled={!nickname.trim()}
                 className="w-full py-4 spooky-btn-gold spooky-btn text-base flex items-center justify-center gap-2"
@@ -319,6 +473,7 @@ export function HomeScreen() {
       <AnimatePresence>
         {showHowTo && <HowToPlayModal language={language} onClose={() => setShowHowTo(false)} />}
         {showAbout && <AboutModal language={language} onClose={() => setShowAbout(false)} />}
+        {showSettings && <SettingsModal language={language} onClose={() => setShowSettings(false)} />}
       </AnimatePresence>
     </div>
   );

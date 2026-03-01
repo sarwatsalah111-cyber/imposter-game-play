@@ -42,7 +42,7 @@ interface GameState {
 interface GameActions {
   setNickname: (name: string) => void;
   setLanguage: (lang: Language) => void;
-  createRoom: () => Promise<void>;
+  createRoom: (settings?: Record<string, unknown>) => Promise<void>;
   joinRoom: (code: string) => Promise<void>;
   updateSettings: (settings: Record<string, unknown>) => Promise<void>;
   startGame: () => Promise<void>;
@@ -280,10 +280,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const actions: GameActions = {
     setNickname: (name) => { saveNickname(name); update({ nickname: name }); },
     setLanguage: (lang) => update({ language: lang }),
-    createRoom: async () => {
+    createRoom: async (settings?: Record<string, unknown>) => {
       update({ loading: true, error: null });
       try {
-        const { room } = await engine.createRoom(state.sessionId, state.nickname, state.language);
+        const { room } = await engine.createRoom(state.sessionId, state.nickname, state.language, settings);
         const r = room as unknown as Room;
         const { data: players } = await supabase.from('room_players').select('*').eq('room_id', r.id);
         update({

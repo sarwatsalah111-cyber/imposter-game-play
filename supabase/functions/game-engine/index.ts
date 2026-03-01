@@ -52,10 +52,11 @@ Deno.serve(async (req) => {
           phase: 'lobby',
         };
         if (settings) {
-        if (settings.max_players !== undefined) roomData.max_players = Math.min(Math.max(Number(settings.max_players), 3), 22);
+          if (settings.max_players !== undefined) roomData.max_players = Math.min(Math.max(Number(settings.max_players), 3), 22);
           if (settings.min_players !== undefined) roomData.min_players = Math.min(Math.max(Number(settings.min_players), 3), 22);
           if (settings.total_rounds !== undefined) roomData.total_rounds = Math.min(Math.max(Number(settings.total_rounds), 1), 10);
           if (settings.voting_time !== undefined) roomData.voting_time = Math.min(Math.max(Number(settings.voting_time), 15), 120);
+          if (settings.discussion_time !== undefined) roomData.discussion_time = Math.min(Math.max(Number(settings.discussion_time), 30), 300);
         }
 
         const { data: room, error: roomErr } = await supabase
