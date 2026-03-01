@@ -168,7 +168,7 @@ const translations: Record<Language, Record<string, string>> = {
   },
   KU_CENTRAL: {
     'app.title': 'فێڵباز',
-    'app.subtitle': 'ساختەکە بدۆزەوە لەنێوتان',
+    'app.subtitle': 'جاسوسەکەی نێوانتان بدۆزەوە، یان هەمویان هەڵبخەڵەتێنە',
     'home.create': 'دروستکردنی ژوور',
     'home.join': 'چوونە ژوورێک',
     'home.nickname': 'ناوی بەکارهێنەر',
