@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
           phase: 'lobby',
         };
         if (settings) {
-          if (settings.max_players !== undefined) roomData.max_players = Math.min(Math.max(Number(settings.max_players), 4), 22);
+        if (settings.max_players !== undefined) roomData.max_players = Math.min(Math.max(Number(settings.max_players), 3), 22);
           if (settings.min_players !== undefined) roomData.min_players = Math.min(Math.max(Number(settings.min_players), 3), 22);
           if (settings.total_rounds !== undefined) roomData.total_rounds = Math.min(Math.max(Number(settings.total_rounds), 1), 10);
           if (settings.voting_time !== undefined) roomData.voting_time = Math.min(Math.max(Number(settings.voting_time), 15), 120);
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
         const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
         if (settings.total_rounds !== undefined) updates.total_rounds = Math.min(Math.max(Number(settings.total_rounds), 1), 10);
         if (settings.voting_time !== undefined) updates.voting_time = Math.min(Math.max(Number(settings.voting_time), 15), 120);
-        if (settings.max_players !== undefined) updates.max_players = Math.min(Math.max(Number(settings.max_players), 4), 22);
+        if (settings.max_players !== undefined) updates.max_players = Math.min(Math.max(Number(settings.max_players), 3), 22);
         if (settings.min_players !== undefined) updates.min_players = Math.min(Math.max(Number(settings.min_players), 3), 22);
 
         const { error: updateErr } = await supabase.from('rooms').update(updates).eq('id', room_id);
