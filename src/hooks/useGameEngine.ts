@@ -74,7 +74,24 @@ export function useGameEngine() {
         caught: boolean;
         isTie: boolean;
         top_voted: string[];
+        outcome: string;
+        points_awarded: Record<string, number>;
+        scores: Record<string, number>;
       }>('get-results', { room_id }),
+
+    imposterGuess: (session_id: string, room_id: string, guess: string) =>
+      callEngine<{ correct: boolean; outcome?: string }>('imposter-guess', { session_id, room_id, guess }),
+
+    getLeaderboard: (room_id: string) =>
+      callEngine<{
+        players: Array<{ session_id: string; nickname: string; score: number; is_host: boolean; is_online: boolean; joined_at: string }>;
+        round_results: unknown[];
+        latest_points: Array<{ player_id: string; delta: number; reason: string; round_index: number }>;
+        current_round: number;
+      }>('get-leaderboard', { room_id }),
+
+    resetScores: (session_id: string, room_id: string) =>
+      callEngine<{ success: boolean }>('reset-scores', { session_id, room_id }),
 
     leaveRoom: (session_id: string, room_id: string) =>
       callEngine<{ success: boolean }>('leave-room', { session_id, room_id }),

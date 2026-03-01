@@ -3,8 +3,9 @@ import { playVictory, playGameOver, playClick, vibrate } from '@/lib/sounds';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Eye, EyeOff, MessageCircle, Vote, Trophy, Timer, ArrowRight, Home, CheckCircle, Target, Mic, MicOff, Skull, Star, Loader2, LogOut } from 'lucide-react';
+import { Eye, EyeOff, MessageCircle, Vote, Trophy, Timer, ArrowRight, Home, CheckCircle, Target, Mic, MicOff, Skull, Star, Loader2, LogOut, Zap, Send } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { LeaderboardScreen } from './LeaderboardScreen';
 
 function CountdownTimer({ seconds, onComplete }: { seconds: number; onComplete?: () => void }) {
   const [timeLeft, setTimeLeft] = useState(seconds);
@@ -112,6 +113,87 @@ function RevealPhase() {
         </button>
       )}
     </motion.div>
+  );
+}
+
+function ImposterGuessPanel() {
+  const { room, language, sessionId, reveal, imposterGuess } = useGame();
+  const [showGuess, setShowGuess] = useState(false);
+  const [guess, setGuess] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [guessUsed, setGuessUsed] = useState(false);
+
+  // Only show for imposter
+  if (!reveal || reveal.role !== 'imposter' || guessUsed) return null;
+
+  const handleSubmit = async () => {
+    if (!guess.trim() || submitting) return;
+    setSubmitting(true);
+    vibrate(50);
+    try {
+      const result = await imposterGuess(guess.trim());
+      if (result.correct) {
+        playVictory();
+        vibrate([50, 100, 50, 100, 50]);
+        toast({ title: t('game.guessCorrect', language) });
+      } else {
+        playClick();
+        toast({ title: t('game.guessWrong', language), variant: 'destructive' });
+        setGuessUsed(true);
+      }
+    } catch {
+      toast({ title: t('error.generic', language), variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+      setGuess('');
+      setShowGuess(false);
+    }
+  };
+
+  return (
+    <div className="w-full">
+      {!showGuess ? (
+        <button
+          onClick={() => { playClick(); setShowGuess(true); }}
+          className="w-full py-3 rounded-xl border border-destructive/40 bg-destructive/10 text-destructive font-display font-bold text-sm uppercase tracking-wider hover:bg-destructive/20 transition-colors flex items-center justify-center gap-2"
+        >
+          <Zap className="w-4 h-4" />
+          {t('game.imposterGuessBtn', language)}
+        </button>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="spooky-panel p-3 space-y-2"
+        >
+          <p className="text-xs text-muted-foreground text-center">{t('game.imposterGuessHint', language)}</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={guess}
+              onChange={e => setGuess(e.target.value)}
+              placeholder={t('game.enterGuess', language)}
+              className="flex-1 px-3 py-2 rounded-lg spooky-inner border border-border text-foreground text-sm bg-transparent font-display"
+              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+              autoFocus
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || !guess.trim()}
+              className="px-4 py-2 spooky-btn text-sm glow-red flex items-center gap-1 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </button>
+          </div>
+          <button
+            onClick={() => setShowGuess(false)}
+            className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Cancel
+          </button>
+        </motion.div>
+      )}
+    </div>
   );
 }
 
@@ -290,6 +372,9 @@ function SpeakingQueuePhase() {
         </div>
       )}
 
+      {/* Imposter guess panel */}
+      <ImposterGuessPanel />
+
       {/* Host override */}
       {isHost && !allDone && (
         <button
@@ -376,8 +461,9 @@ function VotingPhase() {
 }
 
 function ResultsPhase() {
-  const { results, players, room, language, isHost, startGame, goHome, finishGame } = useGame();
+  const { results, players, room, language, isHost, sessionId, startGame, goHome, finishGame, resetScores } = useGame();
   const soundPlayedRef = useRef(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   useEffect(() => {
     if (results && !soundPlayedRef.current) {
@@ -392,50 +478,136 @@ function ResultsPhase() {
 
   if (!results) return <div className="flex-1 flex items-center justify-center"><div className="text-muted-foreground animate-pulse font-display uppercase tracking-wider">Loading...</div></div>;
 
+  if (showLeaderboard) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex-1 flex flex-col"
+      >
+        <LeaderboardScreen />
+        <div className="px-4 pb-4 space-y-2">
+          <button
+            onClick={() => setShowLeaderboard(false)}
+            className="w-full py-3 spooky-btn text-sm flex items-center justify-center gap-2"
+          >
+            <ArrowRight className="w-4 h-4 rotate-180" />
+            {t('game.results', language)}
+          </button>
+          {isHost && (
+            <>
+              <button
+                onClick={startGame}
+                className="w-full py-3 spooky-btn-gold spooky-btn text-sm glow-gold flex items-center justify-center gap-2"
+              >
+                {t('game.nextRound', language)} <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={finishGame}
+                className="w-full py-3 spooky-btn text-sm flex items-center justify-center gap-2"
+              >
+                <Home className="w-4 h-4" /> {t('game.finish', language)}
+              </button>
+            </>
+          )}
+        </div>
+      </motion.div>
+    );
+  }
+
   const imposter = players.find(p => p.session_id === results.imposter_session_id);
+  const outcomeLabel = results.outcome === 'IMPOSTER_GUESS_WIN'
+    ? t('game.imposterGuessedWord', language)
+    : results.caught
+      ? t('game.imposterCaught', language)
+      : results.isTie
+        ? t('game.tie', language)
+        : t('game.imposterWins', language);
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="flex-1 flex flex-col items-center justify-center gap-6 px-4"
+      className="flex-1 flex flex-col items-center gap-4 px-4 pt-2 overflow-y-auto pb-4"
     >
       <div className="flex gap-1">
         {[1, 2, 3].map(i => (
-          <Star key={i} className={`w-8 h-8 ${results.caught && i <= 2 ? 'text-accent fill-accent' : !results.caught && i === 2 ? 'text-accent fill-accent' : 'text-muted-foreground'}`} />
+          <Star key={i} className={`w-7 h-7 ${results.caught && i <= 2 ? 'text-accent fill-accent' : !results.caught && i === 2 ? 'text-accent fill-accent' : 'text-muted-foreground'}`} />
         ))}
       </div>
 
-      <h2 className="font-display text-xl font-bold text-foreground text-center uppercase tracking-wider text-glow-purple">
-        {results.caught ? t('game.imposterCaught', language) : results.isTie ? t('game.tie', language) : t('game.imposterWins', language)}
+      <h2 className="font-display text-lg font-bold text-foreground text-center uppercase tracking-wider text-glow-purple">
+        {outcomeLabel}
       </h2>
 
-      <div className="spooky-panel spider-corner p-6 text-center w-full max-w-xs scratched-texture">
+      <div className="spooky-panel spider-corner p-5 text-center w-full max-w-xs scratched-texture">
         <p className="text-muted-foreground text-xs uppercase tracking-widest mb-2 font-display">{t('game.imposterWas', language)}</p>
         <p className="font-display text-xl font-bold text-destructive uppercase">{imposter?.nickname || '???'}</p>
-        <div className="mt-4 spooky-inner border border-border rounded-lg p-3">
+        <div className="mt-3 spooky-inner border border-border rounded-lg p-3">
           <p className="text-muted-foreground text-xs font-display uppercase tracking-widest">{t('game.secretWord', language)}</p>
           <p className="font-display text-lg font-bold text-accent text-glow-gold mt-1">{results.secret_word}</p>
         </div>
       </div>
 
-      <div className="w-full max-w-xs space-y-1.5">
-        {Object.entries(results.votes).map(([sid, count]) => {
-          const player = players.find(p => p.session_id === sid);
-          return (
-            <div key={sid} className="flex items-center gap-2 text-sm spooky-inner border border-border rounded-lg px-3 py-2">
-              <span className="flex-1 text-foreground font-medium">{player?.nickname || sid.slice(0, 8)}</span>
-              <div className="flex gap-1">
-                {Array.from({ length: count }).map((_, i) => (
-                  <div key={i} className="w-2.5 h-2.5 rounded-full bg-accent" />
-                ))}
+      {/* Points awarded this round */}
+      {Object.keys(results.points_awarded).length > 0 && (
+        <div className="w-full max-w-xs">
+          <p className="text-xs text-muted-foreground font-display uppercase tracking-widest text-center mb-2">{t('game.pointsAwarded', language)}</p>
+          <div className="space-y-1.5">
+            {Object.entries(results.points_awarded).map(([sid, pts]) => {
+              const player = players.find(p => p.session_id === sid);
+              return (
+                <motion.div
+                  key={sid}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex items-center gap-2 text-sm spooky-inner border border-accent/30 rounded-lg px-3 py-2"
+                >
+                  <span className="flex-1 text-foreground font-medium">{player?.nickname || sid.slice(0, 8)}</span>
+                  <motion.span
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: [1, 1.3, 1] }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                    className="text-accent font-display font-bold text-base"
+                  >
+                    +{pts}
+                  </motion.span>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Vote tally */}
+      {Object.keys(results.votes).length > 0 && (
+        <div className="w-full max-w-xs space-y-1.5">
+          {Object.entries(results.votes).map(([sid, count]) => {
+            const player = players.find(p => p.session_id === sid);
+            return (
+              <div key={sid} className="flex items-center gap-2 text-sm spooky-inner border border-border rounded-lg px-3 py-2">
+                <span className="flex-1 text-foreground font-medium">{player?.nickname || sid.slice(0, 8)}</span>
+                <div className="flex gap-1">
+                  {Array.from({ length: count }).map((_, i) => (
+                    <div key={i} className="w-2.5 h-2.5 rounded-full bg-accent" />
+                  ))}
+                </div>
+                <span className="text-accent text-xs w-6 text-right font-display font-bold">{count}</span>
               </div>
-              <span className="text-accent text-xs w-6 text-right font-display font-bold">{count}</span>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Leaderboard button */}
+      <button
+        onClick={() => { playClick(); setShowLeaderboard(true); }}
+        className="w-full max-w-xs py-3 spooky-btn text-sm flex items-center justify-center gap-2"
+      >
+        <Trophy className="w-4 h-4" />
+        {t('game.leaderboard', language)}
+      </button>
 
       {isHost && (
         <div className="w-full max-w-xs flex flex-col gap-2">
