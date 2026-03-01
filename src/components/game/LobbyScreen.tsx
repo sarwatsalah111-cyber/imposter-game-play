@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus } from 'lucide-react';
+import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus, Volume2, VolumeX, Vibrate } from 'lucide-react';
 import { useState } from 'react';
-import { playClick } from '@/lib/sounds';
+import { playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
 
 function SettingControl({ label, value, onChange, min, max, step = 1, suffix = '' }: {
   label: string; value: number; onChange: (v: number) => void;
@@ -14,7 +14,7 @@ function SettingControl({ label, value, onChange, min, max, step = 1, suffix = '
       <span className="text-sm text-muted-foreground">{label}</span>
       <div className="flex items-center gap-2">
         <button
-          onClick={() => onChange(Math.max(min, value - step))}
+          onClick={() => { playClick(); onChange(Math.max(min, value - step)); }}
           className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-foreground hover:border-primary/40 transition-colors"
         >
           <Minus className="w-3 h-3" />
@@ -23,7 +23,7 @@ function SettingControl({ label, value, onChange, min, max, step = 1, suffix = '
           {value}{suffix}
         </span>
         <button
-          onClick={() => onChange(Math.min(max, value + step))}
+          onClick={() => { playClick(); onChange(Math.min(max, value + step)); }}
           className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-foreground hover:border-primary/40 transition-colors"
         >
           <Plus className="w-3 h-3" />
@@ -33,10 +33,35 @@ function SettingControl({ label, value, onChange, min, max, step = 1, suffix = '
   );
 }
 
+function ToggleSetting({ label, icon: Icon, enabled, onToggle }: {
+  label: string; icon: React.ComponentType<{ className?: string }>; enabled: boolean; onToggle: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2">
+      <span className="text-sm text-muted-foreground flex items-center gap-2">
+        <Icon className="w-4 h-4" />
+        {label}
+      </span>
+      <button
+        onClick={() => { playClick(); onToggle(); }}
+        className={`w-12 h-7 rounded-full transition-all relative ${
+          enabled ? 'bg-accent' : 'bg-muted border border-border'
+        }`}
+      >
+        <div className={`w-5 h-5 rounded-full bg-foreground absolute top-1 transition-all ${
+          enabled ? 'left-6' : 'left-1'
+        }`} />
+      </button>
+    </div>
+  );
+}
+
 export function LobbyScreen() {
   const { room, players, isHost, language, sessionId, startGame, updateSettings, leaveRoom, loading } = useGame();
   const [copied, setCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [soundOn, setSoundOn] = useState(isSoundEnabled());
+  const [vibrationOn, setVibrationOn] = useState(isVibrationEnabled());
 
   if (!room) return null;
 
@@ -46,7 +71,8 @@ export function LobbyScreen() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const canStart = isHost && players.filter(p => p.is_online).length >= room.min_players;
+  const onlinePlayers = players.filter(p => p.is_online);
+  const canStart = isHost && onlinePlayers.length >= room.min_players;
 
   const handleSettingChange = (key: string, value: number) => {
     updateSettings({ [key]: value });
@@ -65,13 +91,9 @@ export function LobbyScreen() {
             <LogOut className="w-4 h-4" />
           </button>
           <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple">{t('lobby.title', language)}</h2>
-          {isHost ? (
-            <button onClick={() => { playClick(); setShowSettings(!showSettings); }} className={`w-10 h-10 rounded-lg spooky-inner border flex items-center justify-center transition-colors ${showSettings ? 'border-accent text-accent' : 'border-border text-muted-foreground hover:text-foreground hover:border-primary/40'}`}>
-              <Settings className="w-4 h-4" />
-            </button>
-          ) : (
-            <div className="w-10" />
-          )}
+          <button onClick={() => { playClick(); setShowSettings(!showSettings); }} className={`w-10 h-10 rounded-lg spooky-inner border flex items-center justify-center transition-colors ${showSettings ? 'border-accent text-accent' : 'border-border text-muted-foreground hover:text-foreground hover:border-primary/40'}`}>
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Room code panel */}
@@ -97,8 +119,8 @@ export function LobbyScreen() {
           )}
         </motion.div>
 
-        {/* Settings panel (host only) */}
-        {isHost && showSettings && (
+        {/* Settings panel */}
+        {showSettings && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -109,23 +131,52 @@ export function LobbyScreen() {
               <Settings className="w-4 h-4" />
               {t('lobby.settings', language)}
             </h3>
-            <SettingControl
-              label={t('lobby.maxPlayers', language)}
-              value={room.max_players}
-              onChange={(v) => handleSettingChange('max_players', v)}
-              min={4} max={22}
+
+            {/* Game settings (host only) */}
+            {isHost && (
+              <>
+                <SettingControl
+                  label={t('lobby.maxPlayers', language)}
+                  value={room.max_players}
+                  onChange={(v) => handleSettingChange('max_players', v)}
+                  min={3} max={22}
+                />
+                <SettingControl
+                  label={t('lobby.rounds', language)}
+                  value={room.total_rounds}
+                  onChange={(v) => handleSettingChange('total_rounds', v)}
+                  min={1} max={10}
+                />
+                <SettingControl
+                  label={t('lobby.votingTime', language)}
+                  value={room.voting_time}
+                  onChange={(v) => handleSettingChange('voting_time', v)}
+                  min={15} max={120} step={5} suffix="s"
+                />
+                <div className="border-t border-border my-2" />
+              </>
+            )}
+
+            {/* Personal settings (everyone) */}
+            <ToggleSetting
+              label="Sound Effects"
+              icon={soundOn ? Volume2 : VolumeX}
+              enabled={soundOn}
+              onToggle={() => {
+                const next = !soundOn;
+                setSoundOn(next);
+                setSoundEnabled(next);
+              }}
             />
-            <SettingControl
-              label={t('lobby.rounds', language)}
-              value={room.total_rounds}
-              onChange={(v) => handleSettingChange('total_rounds', v)}
-              min={1} max={10}
-            />
-            <SettingControl
-              label={t('lobby.votingTime', language)}
-              value={room.voting_time}
-              onChange={(v) => handleSettingChange('voting_time', v)}
-              min={15} max={120} step={5} suffix="s"
+            <ToggleSetting
+              label="Vibration"
+              icon={Vibrate}
+              enabled={vibrationOn}
+              onToggle={() => {
+                const next = !vibrationOn;
+                setVibrationOn(next);
+                setVibrationEnabled(next);
+              }}
             />
           </motion.div>
         )}
@@ -147,7 +198,7 @@ export function LobbyScreen() {
         {/* Players */}
         <div className="flex-1 spooky-panel p-4 scratched-texture">
           <p className="text-muted-foreground text-xs uppercase tracking-widest mb-3 font-display">
-            {t('lobby.players', language)} ({players.length}/{room.max_players})
+            {t('lobby.players', language)} ({onlinePlayers.length}/{room.max_players})
           </p>
           <div className="space-y-2">
             {players.map((player, i) => (

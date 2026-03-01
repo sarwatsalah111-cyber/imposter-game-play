@@ -102,7 +102,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ ...prev, ...partial }));
   }, []);
 
-  // Centralized player fetch — used by realtime AND polling fallback
+  // Centralized player fetch
   const fetchPlayers = useCallback(async (roomId: string) => {
     try {
       const { data, error } = await supabase
@@ -111,16 +111,38 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         .eq('room_id', roomId);
       if (!error && data) {
         setState(prev => {
-          // Only update if data actually changed (avoid unnecessary re-renders)
-          const prevIds = prev.players.map(p => `${p.id}-${p.is_online}-${p.is_eliminated}`).join(',');
-          const newIds = (data as unknown as RoomPlayer[]).map(p => `${p.id}-${p.is_online}-${p.is_eliminated}`).join(',');
-          if (prevIds === newIds) return prev;
+          const prevKey = prev.players.map(p => `${p.id}-${p.is_online}-${p.is_eliminated}-${p.nickname}`).join(',');
+          const newKey = (data as unknown as RoomPlayer[]).map(p => `${p.id}-${p.is_online}-${p.is_eliminated}-${p.nickname}`).join(',');
+          if (prevKey === newKey && prev.players.length === data.length) return prev;
           return { ...prev, players: data as unknown as RoomPlayer[] };
         });
       }
     } catch {
       // Silently fail — polling will retry
     }
+  }, []);
+
+  // Centralized room fetch
+  const fetchRoom = useCallback(async (roomId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('id', roomId)
+        .single();
+      if (!error && data) {
+        const r = data as unknown as Room;
+        setState(prev => {
+          if (!prev.room) return prev;
+          return {
+            ...prev,
+            room: { ...r, secret_word: undefined, imposter_session_id: undefined } as unknown as Room,
+            phase: r.phase,
+            isHost: r.host_session_id === sessionIdRef.current,
+          };
+        });
+      }
+    } catch {}
   }, []);
 
   const refreshSpokeStatus = useCallback(async (roomId: string) => {
@@ -135,11 +157,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (!state.room) return;
     const roomId = state.room.id;
 
-    // Immediate initial fetch to ensure we have latest players
+    // Immediate initial fetch
     fetchPlayers(roomId);
 
+    const channelName = `room-${roomId}-${Date.now()}`;
     const roomChannel = supabase
-      .channel(`room-${roomId}-${Date.now()}`) // unique channel name to avoid reuse issues
+      .channel(channelName)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
@@ -151,9 +174,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           setState(prev => {
             if (!prev.room) return prev;
             const updated = { ...prev.room };
-            (['phase', 'status', 'host_session_id', 'current_round', 'updated_at', 'closed_at',
-              'language', 'discussion_time', 'voting_time', 'reveal_time', 'total_rounds', 'max_players', 'min_players',
-            ] as const).forEach(k => {
+            const syncKeys = [
+              'phase', 'status', 'host_session_id', 'current_round', 'updated_at', 'closed_at',
+              'language', 'discussion_time', 'voting_time', 'reveal_time', 'total_rounds',
+              'max_players', 'min_players',
+            ];
+            syncKeys.forEach(k => {
               if (k in newRoom) (updated as Record<string, unknown>)[k] = newRoom[k];
             });
             return {
@@ -170,25 +196,19 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         schema: 'public',
         table: 'room_players',
         filter: `room_id=eq.${roomId}`,
-      }, () => {
-        fetchPlayers(roomId);
-      })
+      }, () => { fetchPlayers(roomId); })
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'room_players',
         filter: `room_id=eq.${roomId}`,
-      }, () => {
-        fetchPlayers(roomId);
-      })
+      }, () => { fetchPlayers(roomId); })
       .on('postgres_changes', {
         event: 'DELETE',
         schema: 'public',
         table: 'room_players',
         filter: `room_id=eq.${roomId}`,
-      }, () => {
-        fetchPlayers(roomId);
-      })
+      }, () => { fetchPlayers(roomId); })
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -203,29 +223,27 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       .subscribe((status) => {
         console.log('[Realtime] Subscription status:', status);
         if (status === 'SUBSCRIBED') {
-          // Re-fetch players immediately after subscribe confirms — 
-          // events during connection setup may have been missed
           fetchPlayers(roomId);
+          fetchRoom(roomId);
         }
       });
 
-    // Polling fallback: re-fetch players every 5s as safety net
-    // This catches any realtime events that were missed
+    // Polling fallback: re-fetch every 3s as safety net
     playerPollRef.current = setInterval(() => {
       fetchPlayers(roomId);
-    }, 5000);
+    }, 3000);
 
     // Heartbeat
     heartbeatRef.current = setInterval(() => {
       engine.heartbeat(sessionIdRef.current, roomId).catch(() => {});
-    }, 12000);
+    }, 10000);
 
     return () => {
       supabase.removeChannel(roomChannel);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (playerPollRef.current) clearInterval(playerPollRef.current);
     };
-  }, [state.room?.id]); // Only re-subscribe when room changes
+  }, [state.room?.id]);
 
   // Fetch reveal when phase changes to reveal
   useEffect(() => {
@@ -266,7 +284,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       try {
         const { room } = await engine.createRoom(state.sessionId, state.nickname, state.language);
         const r = room as unknown as Room;
-        // Fetch players immediately after creating
         const { data: players } = await supabase.from('room_players').select('*').eq('room_id', r.id);
         update({
           room: r,
@@ -298,8 +315,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     updateSettings: async (settings) => {
       if (!state.room) return;
-      try { await engine.updateSettings(state.sessionId, state.room.id, settings); }
-      catch (e: unknown) { update({ error: (e as Error).message }); }
+      try {
+        await engine.updateSettings(state.sessionId, state.room.id, settings);
+        // Optimistically update room settings locally for instant feedback
+        setState(prev => {
+          if (!prev.room) return prev;
+          const updated = { ...prev.room };
+          Object.entries(settings).forEach(([k, v]) => {
+            (updated as Record<string, unknown>)[k] = v;
+          });
+          return { ...prev, room: updated as Room };
+        });
+      } catch (e: unknown) { update({ error: (e as Error).message }); }
     },
     startGame: async () => {
       if (!state.room) return;

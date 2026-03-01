@@ -1,7 +1,33 @@
 // Web Audio API based sound effects — no external dependencies
 
+const SOUND_STORAGE_KEY = 'imposter-sound-enabled';
+const VIBRATION_STORAGE_KEY = 'imposter-vibration-enabled';
+
 let audioCtx: AudioContext | null = null;
 let ambientNodes: { oscillators: OscillatorNode[]; gains: GainNode[]; master: GainNode } | null = null;
+
+export function isSoundEnabled(): boolean {
+  try { return localStorage.getItem(SOUND_STORAGE_KEY) !== 'false'; } catch { return true; }
+}
+
+export function setSoundEnabled(enabled: boolean) {
+  try { localStorage.setItem(SOUND_STORAGE_KEY, String(enabled)); } catch {}
+  if (!enabled) stopAmbient();
+}
+
+export function isVibrationEnabled(): boolean {
+  try { return localStorage.getItem(VIBRATION_STORAGE_KEY) !== 'false'; } catch { return true; }
+}
+
+export function setVibrationEnabled(enabled: boolean) {
+  try { localStorage.setItem(VIBRATION_STORAGE_KEY, String(enabled)); } catch {}
+}
+
+export function vibrate(pattern: number | number[] = 30) {
+  if (isVibrationEnabled() && navigator.vibrate) {
+    navigator.vibrate(pattern);
+  }
+}
 
 function getAudioContext(): AudioContext {
   if (!audioCtx || audioCtx.state === 'closed') {
@@ -15,6 +41,7 @@ function getAudioContext(): AudioContext {
 
 // Spooky ambient drone — layered detuned oscillators with LFO modulation
 export function startAmbient(volume = 0.12) {
+  if (!isSoundEnabled()) return;
   if (ambientNodes) return; // already playing
   const ctx = getAudioContext();
 
@@ -31,7 +58,7 @@ export function startAmbient(volume = 0.12) {
   // Layer 1 — low drone
   const osc1 = ctx.createOscillator();
   osc1.type = 'sine';
-  osc1.frequency.value = 55; // A1
+  osc1.frequency.value = 55;
   const g1 = ctx.createGain();
   g1.gain.value = 0.6;
   osc1.connect(g1).connect(master);
@@ -42,7 +69,7 @@ export function startAmbient(volume = 0.12) {
   // Layer 2 — detuned eerie tone
   const osc2 = ctx.createOscillator();
   osc2.type = 'sawtooth';
-  osc2.frequency.value = 82.5; // slightly sharp E2
+  osc2.frequency.value = 82.5;
   const g2 = ctx.createGain();
   g2.gain.value = 0.15;
   const filter2 = ctx.createBiquadFilter();
@@ -72,7 +99,7 @@ export function startAmbient(volume = 0.12) {
   // LFO to modulate layer 3 gain for eerie pulsing
   const lfo = ctx.createOscillator();
   lfo.type = 'sine';
-  lfo.frequency.value = 0.15; // very slow
+  lfo.frequency.value = 0.15;
   const lfoGain = ctx.createGain();
   lfoGain.gain.value = 0.03;
   lfo.connect(lfoGain).connect(g3.gain);
@@ -98,7 +125,6 @@ export function stopAmbient() {
   const ctx = audioCtx;
   const { master, oscillators } = ambientNodes;
 
-  // Fade out
   master.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.5);
 
   setTimeout(() => {
@@ -109,6 +135,8 @@ export function stopAmbient() {
 
 // Click sound — short percussive blip
 export function playClick() {
+  if (!isSoundEnabled()) return;
+  vibrate(15);
   const ctx = getAudioContext();
   const osc = ctx.createOscillator();
   osc.type = 'sine';
@@ -126,6 +154,8 @@ export function playClick() {
 
 // Spooky confirm sound — descending tone
 export function playSpookyConfirm() {
+  if (!isSoundEnabled()) return;
+  vibrate(30);
   const ctx = getAudioContext();
   const osc = ctx.createOscillator();
   osc.type = 'triangle';
