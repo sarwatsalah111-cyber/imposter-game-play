@@ -8,8 +8,10 @@ function GameContent() {
   const { room, phase, language } = useGame();
   const dir = getDir(language);
 
+  const isSorani = language === 'KU_CENTRAL';
+
   return (
-    <div dir={dir} className="min-h-screen bg-background">
+    <div dir={dir} className={`min-h-screen bg-background ${isSorani ? 'font-sorani' : ''}`}>
       {!room && <HomeScreen />}
       {room && phase === 'lobby' && <LobbyScreen />}
       {room && phase !== 'lobby' && <GameScreen />}

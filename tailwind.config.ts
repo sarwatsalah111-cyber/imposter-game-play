@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         display: ['Cinzel', 'serif'],
         body: ['Inter', 'sans-serif'],
+        sorani: ['UniMahanAysha', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
