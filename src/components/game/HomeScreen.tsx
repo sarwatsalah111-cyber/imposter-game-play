@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t, LANGUAGES, type Language } from '@/lib/i18n';
-import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate } from 'lucide-react';
+import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, BookOpen } from 'lucide-react';
 import { SpyLogo } from './SpyLogo';
 import { startAmbient, stopAmbient, playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
 import { getDefaultSettings, saveDefaultSettings, type DefaultGameSettings } from '@/lib/session';
+import { WordBankModal } from './WordBankManager';
 
 function HowToPlayModal({ language, onClose }: { language: Language; onClose: () => void }) {
   const steps = [
@@ -266,6 +267,7 @@ export function HomeScreen() {
   const [showHowTo, setShowHowTo] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showWordBank, setShowWordBank] = useState(false);
 
   // Start ambient sound on mount, stop on unmount
   useEffect(() => {
@@ -404,6 +406,13 @@ export function HomeScreen() {
                 {t('settings.title', language)}
               </button>
               <button
+                onClick={() => { playClick(); setShowWordBank(true); }}
+                className="w-full py-4 spooky-btn text-base flex items-center justify-center gap-2"
+              >
+                <BookOpen className="w-5 h-5" />
+                {t('wordbank.title', language)}
+              </button>
+              <button
                 onClick={() => { playClick(); if (nickname.trim()) setMode('join'); }}
                 disabled={!nickname.trim()}
                 className="w-full py-4 spooky-btn-gold spooky-btn text-base flex items-center justify-center gap-2"
@@ -474,6 +483,7 @@ export function HomeScreen() {
         {showHowTo && <HowToPlayModal language={language} onClose={() => setShowHowTo(false)} />}
         {showAbout && <AboutModal language={language} onClose={() => setShowAbout(false)} />}
         {showSettings && <SettingsModal language={language} onClose={() => setShowSettings(false)} />}
+        {showWordBank && <WordBankModal language={language} uiLang={language} onClose={() => setShowWordBank(false)} />}
       </AnimatePresence>
     </div>
   );
