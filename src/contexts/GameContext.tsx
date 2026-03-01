@@ -250,7 +250,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         table: 'rooms',
         filter: `id=eq.${roomId}`,
       }, (payload) => {
-        if (payload.eventType === 'UPDATE') {
+         if (payload.eventType === 'UPDATE') {
           const newRoom = payload.new as Record<string, unknown>;
           setState(prev => {
             if (!prev.room) return prev;
@@ -263,10 +263,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             syncKeys.forEach(k => {
               if (k in newRoom) (updated as Record<string, unknown>)[k] = newRoom[k];
             });
+
+            const newPhase = (newRoom.phase as GamePhase) || prev.phase;
+            const phaseChanged = newPhase !== prev.phase;
+
+            // When phase transitions to 'reveal', clear stale round data so all players re-fetch
+            const roundReset = phaseChanged && newPhase === 'reveal'
+              ? { reveal: null, results: null, hasVoted: false, spokeStatus: null, spokenPlayers: [] }
+              : {};
+
             return {
               ...prev,
+              ...roundReset,
               room: updated as Room,
-              phase: (newRoom.phase as GamePhase) || prev.phase,
+              phase: newPhase,
               isHost: newRoom.host_session_id === sessionIdRef.current,
             };
           });
