@@ -61,5 +61,8 @@ export function useGameEngine() {
 
     kickPlayer: (session_id: string, room_id: string, target_session_id: string) =>
       callEngine<{ success: boolean }>('kick-player', { session_id, room_id, target_session_id }),
+
+    migrateHost: (session_id: string, room_id: string) =>
+      callEngine<{ success: boolean }>('migrate-host', { session_id, room_id }),
   };
 }

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getSessionId, getNickname, setNickname as saveNickname } from '@/lib/session';
+import { getSessionId, getNickname, setNickname as saveNickname, saveRoomContext, getRoomContext, clearRoomContext } from '@/lib/session';
 import { useGameEngine } from '@/hooks/useGameEngine';
 import type { Language } from '@/lib/i18n';
 import type { Room, RoomPlayer, GamePhase, RevealData } from '@/lib/game-types';
@@ -48,12 +48,13 @@ interface GameActions {
   startGame: () => Promise<void>;
   advancePhase: (phase: GamePhase) => Promise<void>;
   markSpoke: () => Promise<void>;
-    vote: (targetSessionId: string) => Promise<void>;
-    kickPlayer: (targetSessionId: string) => Promise<void>;
-    leaveRoom: () => Promise<void>;
-    finishGame: () => Promise<void>;
-    clearError: () => void;
-    goHome: () => void;
+  vote: (targetSessionId: string) => Promise<void>;
+  kickPlayer: (targetSessionId: string) => Promise<void>;
+  leaveRoom: () => Promise<void>;
+  finishGame: () => Promise<void>;
+  clearError: () => void;
+  goHome: () => void;
+  retryConnection: () => void;
 }
 
 const GameContext = createContext<(GameState & GameActions) | null>(null);
@@ -81,17 +82,18 @@ const INITIAL_STATE: GameState = {
   spokenPlayers: [],
 };
 
+const LOADING_TIMEOUT_MS = 8000;
+
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const engine = useGameEngine();
   const [state, setState] = useState<GameState>(INITIAL_STATE);
   const heartbeatRef = useRef<NodeJS.Timeout>();
   const playerPollRef = useRef<NodeJS.Timeout>();
+  const loadingTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Use refs for values needed inside subscriptions to avoid stale closures
   const roomIdRef = useRef<string | null>(null);
   const sessionIdRef = useRef(state.sessionId);
 
-  // Keep refs in sync
   useEffect(() => {
     roomIdRef.current = state.room?.id ?? null;
   }, [state.room?.id]);
@@ -102,6 +104,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const update = useCallback((partial: Partial<GameState>) => {
     setState(prev => ({ ...prev, ...partial }));
   }, []);
+
+  // ─── Loading timeout: auto-cancel after 8s ───
+  const setLoadingWithTimeout = useCallback((isLoading: boolean) => {
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = undefined;
+    }
+    if (isLoading) {
+      loadingTimeoutRef.current = setTimeout(() => {
+        setState(prev => {
+          if (!prev.loading) return prev;
+          return { ...prev, loading: false, error: 'Connection timed out. Please retry.' };
+        });
+      }, LOADING_TIMEOUT_MS);
+    }
+    update({ loading: isLoading });
+  }, [update]);
 
   // Centralized player fetch
   const fetchPlayers = useCallback(async (roomId: string) => {
@@ -118,9 +137,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           return { ...prev, players: data as unknown as RoomPlayer[] };
         });
       }
-    } catch {
-      // Silently fail — polling will retry
-    }
+    } catch {}
   }, []);
 
   // Centralized room fetch
@@ -153,12 +170,66 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [engine, update]);
 
+  // ─── Session recovery on mount ───
+  useEffect(() => {
+    const savedCtx = getRoomContext();
+    if (!savedCtx) return;
+    if (savedCtx.sessionId !== state.sessionId) {
+      clearRoomContext();
+      return;
+    }
+
+    // Attempt to recover
+    (async () => {
+      try {
+        const { data: room } = await supabase
+          .from('rooms').select('*').eq('id', savedCtx.roomId).single();
+        if (!room || room.status === 'closed') {
+          clearRoomContext();
+          return;
+        }
+
+        const { data: player } = await supabase
+          .from('room_players').select('*')
+          .eq('room_id', savedCtx.roomId).eq('session_id', savedCtx.sessionId).maybeSingle();
+        if (!player) {
+          clearRoomContext();
+          return;
+        }
+
+        // Mark online
+        await supabase.from('room_players').update({
+          is_online: true, last_heartbeat: new Date().toISOString(),
+        }).eq('id', player.id);
+
+        const r = room as unknown as Room;
+        const { data: players } = await supabase
+          .from('room_players').select('*').eq('room_id', r.id);
+
+        update({
+          room: { ...r, secret_word: undefined, imposter_session_id: undefined } as unknown as Room,
+          phase: r.phase,
+          isHost: r.host_session_id === state.sessionId,
+          players: (players as unknown as RoomPlayer[]) || [],
+        });
+      } catch {
+        clearRoomContext();
+      }
+    })();
+  }, []); // Only on mount
+
+  // ─── Save room context when room changes ───
+  useEffect(() => {
+    if (state.room) {
+      saveRoomContext({ roomId: state.room.id, roomCode: state.room.code, sessionId: state.sessionId });
+    }
+  }, [state.room?.id, state.sessionId]);
+
   // ─── Realtime subscription + polling fallback ───
   useEffect(() => {
     if (!state.room) return;
     const roomId = state.room.id;
 
-    // Immediate initial fetch
     fetchPlayers(roomId);
 
     const channelName = `room-${roomId}-${Date.now()}`;
@@ -192,30 +263,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           });
         }
       })
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'room_players',
-        filter: `room_id=eq.${roomId}`,
-      }, () => { fetchPlayers(roomId); })
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'room_players',
-        filter: `room_id=eq.${roomId}`,
-      }, () => { fetchPlayers(roomId); })
-      .on('postgres_changes', {
-        event: 'DELETE',
-        schema: 'public',
-        table: 'room_players',
-        filter: `room_id=eq.${roomId}`,
-      }, () => { fetchPlayers(roomId); })
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'room_events',
-        filter: `room_id=eq.${roomId}`,
-      }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'room_players', filter: `room_id=eq.${roomId}` }, () => { fetchPlayers(roomId); })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'room_players', filter: `room_id=eq.${roomId}` }, () => { fetchPlayers(roomId); })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'room_players', filter: `room_id=eq.${roomId}` }, () => { fetchPlayers(roomId); })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'room_events', filter: `room_id=eq.${roomId}` }, (payload) => {
         const evt = payload.new as Record<string, unknown>;
         if (evt.event_type === 'spoke') {
           refreshSpokeStatus(roomId);
@@ -229,9 +280,31 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-    // Polling fallback: re-fetch every 3s as safety net
-    playerPollRef.current = setInterval(() => {
+    // Polling fallback + host migration watchdog every 3s
+    playerPollRef.current = setInterval(async () => {
       fetchPlayers(roomId);
+
+      // Host migration watchdog
+      setState(prev => {
+        if (!prev.room || prev.isHost) return prev;
+        const hostPlayer = prev.players.find(p => p.is_host);
+        if (!hostPlayer) return prev;
+        if (hostPlayer.is_online) return prev;
+        const elapsed = Date.now() - new Date(hostPlayer.last_heartbeat).getTime();
+        if (elapsed > 25000) {
+          // Check if we're the oldest connected player
+          const onlinePlayers = prev.players.filter(p => p.is_online).sort((a, b) =>
+            new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime()
+          );
+          if (onlinePlayers.length > 0 && onlinePlayers[0].session_id === sessionIdRef.current) {
+            // Trigger migration (fire and forget from inside setState — schedule it)
+            setTimeout(() => {
+              engine.migrateHost(sessionIdRef.current, roomId).catch(() => {});
+            }, 0);
+          }
+        }
+        return prev;
+      });
     }, 3000);
 
     // Heartbeat
@@ -272,20 +345,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.phase, state.room?.id]);
 
-  const resetState = () => ({
-    room: null, players: [], phase: 'lobby' as GamePhase, reveal: null,
-    results: null, isHost: false, hasVoted: false, spokeStatus: null, spokenPlayers: [],
-  });
+  const resetState = () => {
+    clearRoomContext();
+    return {
+      room: null, players: [], phase: 'lobby' as GamePhase, reveal: null,
+      results: null, isHost: false, hasVoted: false, spokeStatus: null, spokenPlayers: [],
+    };
+  };
 
   const actions: GameActions = {
     setNickname: (name) => { saveNickname(name); update({ nickname: name }); },
     setLanguage: (lang) => update({ language: lang }),
     createRoom: async (settings?: Record<string, unknown>) => {
-      update({ loading: true, error: null });
+      setLoadingWithTimeout(true);
+      update({ error: null });
       try {
         const { room } = await engine.createRoom(state.sessionId, state.nickname, state.language, settings);
         const r = room as unknown as Room;
         const { data: players } = await supabase.from('room_players').select('*').eq('room_id', r.id);
+        if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
         update({
           room: r,
           phase: 'lobby',
@@ -294,15 +372,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           players: (players as unknown as RoomPlayer[]) || [],
         });
       } catch (e: unknown) {
+        if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
         update({ error: (e as Error).message, loading: false });
       }
     },
     joinRoom: async (code) => {
-      update({ loading: true, error: null });
+      setLoadingWithTimeout(true);
+      update({ error: null });
       try {
         const { room } = await engine.joinRoom(state.sessionId, state.nickname, code);
         const r = room as unknown as Room;
         const { data: players } = await supabase.from('room_players').select('*').eq('room_id', r.id);
+        if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
         update({
           room: r,
           phase: r.phase,
@@ -311,6 +392,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           players: (players as unknown as RoomPlayer[]) || [],
         });
       } catch (e: unknown) {
+        if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
         update({ error: (e as Error).message, loading: false });
       }
     },
@@ -318,7 +400,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (!state.room) return;
       try {
         await engine.updateSettings(state.sessionId, state.room.id, settings);
-        // Optimistically update room settings locally for instant feedback
         setState(prev => {
           if (!prev.room) return prev;
           const updated = { ...prev.room };
@@ -331,11 +412,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     startGame: async () => {
       if (!state.room) return;
-      update({ loading: true, error: null });
+      setLoadingWithTimeout(true);
+      update({ error: null });
       try {
         await engine.startGame(state.sessionId, state.room.id);
+        if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
         update({ loading: false, reveal: null, results: null, hasVoted: false, spokeStatus: null, spokenPlayers: [] });
       } catch (e: unknown) {
+        if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
         update({ error: (e as Error).message, loading: false });
       }
     },
@@ -379,6 +463,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
     clearError: () => update({ error: null }),
     goHome: () => update(resetState()),
+    retryConnection: () => {
+      if (state.room) {
+        fetchRoom(state.room.id);
+        fetchPlayers(state.room.id);
+        update({ error: null });
+      }
+    },
   };
 
   return (
