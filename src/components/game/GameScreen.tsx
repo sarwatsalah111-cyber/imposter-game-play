@@ -53,8 +53,9 @@ function RevealPhase() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       className="flex-1 flex flex-col items-center justify-center gap-6 px-4"
     >
       <div className="text-center">
@@ -65,9 +66,9 @@ function RevealPhase() {
       </div>
 
       <motion.div
-        initial={{ rotateY: 180 }}
-        animate={{ rotateY: 0 }}
-        transition={{ duration: 0.6, type: 'spring' }}
+        initial={{ rotateY: 180, opacity: 0 }}
+        animate={{ rotateY: 0, opacity: 1 }}
+        transition={{ duration: 0.5, type: 'spring', stiffness: 200, damping: 20 }}
         className={`w-full max-w-xs p-8 spooky-panel spider-corner text-center ${
           isImposter ? 'glow-red' : 'glow-purple'
         }`}
@@ -170,6 +171,7 @@ function SpeakingQueuePhase() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      transition={{ duration: 0.25 }}
       className="flex-1 flex flex-col gap-4 px-4"
     >
       <div className="text-center pt-4">
@@ -311,6 +313,7 @@ function VotingPhase() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      transition={{ duration: 0.25 }}
       className="flex-1 flex flex-col gap-4 px-4"
     >
       <div className="text-center pt-4">
@@ -395,6 +398,7 @@ function ResultsPhase() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
       className="flex-1 flex flex-col items-center justify-center gap-6 px-4"
     >
       <div className="flex gap-1">
