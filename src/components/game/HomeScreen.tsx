@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t, LANGUAGES, type Language } from '@/lib/i18n';
-import { Eye, Users, Globe, Skull, HelpCircle, Info, X, ChevronRight } from 'lucide-react';
+import { Users, Globe, HelpCircle, Info, X, ChevronRight } from 'lucide-react';
+import { SpyLogo } from './SpyLogo';
 import { startAmbient, stopAmbient, playClick } from '@/lib/sounds';
 
 function HowToPlayModal({ language, onClose }: { language: Language; onClose: () => void }) {
@@ -88,9 +89,8 @@ function AboutModal({ language, onClose }: { language: Language; onClose: () => 
         </div>
 
         <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <Skull className="w-10 h-10 text-primary" />
-            <Eye className="w-7 h-7 text-accent animate-pulse" />
+          <div className="flex items-center justify-center">
+            <SpyLogo size={56} className="text-primary drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]" />
           </div>
           <h3 className="font-display text-2xl font-bold text-foreground uppercase tracking-wider text-glow-purple">
             {t('app.title', language)}
@@ -182,9 +182,8 @@ export function HomeScreen() {
           transition={{ type: 'spring', stiffness: 200 }}
           className="text-center"
         >
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <Skull className="w-9 h-9 text-primary" />
-            <Eye className="w-6 h-6 text-accent animate-pulse" />
+          <div className="flex items-center justify-center mb-3">
+            <SpyLogo size={52} className="text-primary drop-shadow-[0_0_16px_hsl(var(--primary)/0.5)]" />
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground text-glow-purple tracking-wide uppercase">
             {t('app.title', language)}
