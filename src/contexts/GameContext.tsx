@@ -435,8 +435,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       try {
         await engine.startGame(state.sessionId, state.room.id);
         if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
-        // Optimistically set phase to reveal so host transitions immediately
+        // Clear previous round state so new imposter/word is fetched fresh
         update({ loading: false, phase: 'reveal', reveal: null, results: null, hasVoted: false, spokeStatus: null, spokenPlayers: [] });
+        // Force re-fetch reveal for this new round
+        if (state.room) {
+          engine.getReveal(state.sessionId, state.room.id)
+            .then(reveal => update({ reveal }))
+            .catch(() => {});
+        }
       } catch (e: unknown) {
         if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
         update({ error: (e as Error).message, loading: false });
