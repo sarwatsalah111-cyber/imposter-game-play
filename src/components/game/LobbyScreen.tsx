@@ -163,8 +163,9 @@ export function LobbyScreen() {
 
         {/* Room code panel */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           className="spooky-panel spider-corner p-4 text-center mb-4"
         >
           <p className="text-muted-foreground text-xs mb-1 uppercase tracking-widest font-display">{t('lobby.code', language)}</p>

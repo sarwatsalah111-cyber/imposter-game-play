@@ -75,6 +75,7 @@
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -96,7 +97,7 @@
 }
 
 @layer utilities {
-  /* Spooky panel – the main container style from reference images */
+  /* Spooky panel – the main container style */
   .spooky-panel {
     background: linear-gradient(145deg, hsl(270 35% 18%), hsl(270 35% 12%));
     border: 2px solid hsl(270 40% 30%);
@@ -119,7 +120,7 @@
     background: linear-gradient(90deg, transparent, hsl(280 75% 55% / 0.5), transparent);
   }
 
-  /* Spooky inner panel – darker inset area */
+  /* Spooky inner panel */
   .spooky-inner {
     background: linear-gradient(145deg, hsl(270 40% 8%), hsl(270 40% 6%));
     border: 1px solid hsl(270 35% 18%);
@@ -140,7 +141,7 @@
     pointer-events: none;
   }
 
-  /* Spooky button styles */
+  /* Spooky button styles — GPU-accelerated, snappy feedback */
   .spooky-btn {
     background: linear-gradient(145deg, hsl(280 60% 40%), hsl(280 60% 30%));
     border: 2px solid hsl(280 50% 45%);
@@ -153,17 +154,30 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    transition: all 0.2s;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateZ(0);
+    will-change: transform, box-shadow;
+    cursor: pointer;
+    user-select: none;
   }
   .spooky-btn:hover {
     background: linear-gradient(145deg, hsl(280 60% 45%), hsl(280 60% 35%));
     box-shadow:
       inset 0 1px 0 hsl(280 60% 60% / 0.3),
-      0 2px 12px hsl(280 75% 55% / 0.3);
+      0 4px 16px hsl(280 75% 55% / 0.35);
+    transform: translateY(-1px) translateZ(0);
+  }
+  .spooky-btn:active {
+    transform: translateY(1px) scale(0.98) translateZ(0);
+    box-shadow:
+      inset 0 1px 0 hsl(280 60% 50% / 0.2),
+      0 1px 4px hsl(270 50% 5% / 0.4);
+    transition-duration: 0.05s;
   }
   .spooky-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+    transform: none;
   }
 
   .spooky-btn-gold {
@@ -178,7 +192,15 @@
     background: linear-gradient(145deg, hsl(45 85% 50%), hsl(35 90% 40%));
     box-shadow:
       inset 0 1px 0 hsl(45 90% 65% / 0.4),
-      0 2px 16px hsl(45 90% 50% / 0.4);
+      0 4px 20px hsl(45 90% 50% / 0.45);
+    transform: translateY(-1px) translateZ(0);
+  }
+  .spooky-btn-gold:active {
+    transform: translateY(1px) scale(0.98) translateZ(0);
+    box-shadow:
+      inset 0 1px 0 hsl(45 90% 55% / 0.3),
+      0 1px 4px hsl(45 90% 30% / 0.3);
+    transition-duration: 0.05s;
   }
 
   .spooky-btn-danger {
@@ -187,6 +209,11 @@
   }
   .spooky-btn-danger:hover {
     background: linear-gradient(145deg, hsl(0 65% 45%), hsl(0 65% 35%));
+    transform: translateY(-1px) translateZ(0);
+  }
+  .spooky-btn-danger:active {
+    transform: translateY(1px) scale(0.98) translateZ(0);
+    transition-duration: 0.05s;
   }
 
   .spooky-input {
@@ -194,11 +221,11 @@
     border: 2px solid hsl(270 35% 25%);
     border-radius: 0.75rem;
     color: hsl(270 30% 92%);
-    transition: all 0.2s;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .spooky-input:focus {
     border-color: hsl(280 75% 55%);
-    box-shadow: 0 0 12px hsl(280 75% 55% / 0.2);
+    box-shadow: 0 0 0 3px hsl(280 75% 55% / 0.15), 0 0 12px hsl(280 75% 55% / 0.2);
     outline: none;
   }
   .spooky-input::placeholder {
@@ -226,7 +253,7 @@
     text-shadow: 0 0 20px hsl(45 95% 55% / 0.6), 0 0 40px hsl(45 95% 55% / 0.3);
   }
 
-  /* Scratched texture overlay for panels */
+  /* Scratched texture overlay */
   .scratched-texture {
     background-image:
       repeating-linear-gradient(
@@ -248,6 +275,16 @@
   /* Background vignette */
   .bg-vignette {
     background: radial-gradient(ellipse at center, transparent 40%, hsl(270 50% 3%) 100%);
+  }
+
+  /* Smooth icon buttons */
+  .icon-btn {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150;
+    transform: translateZ(0);
+  }
+  .icon-btn:active {
+    transform: scale(0.92) translateZ(0);
+    transition-duration: 0.05s;
   }
 }
 

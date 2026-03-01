@@ -351,15 +351,16 @@ export function HomeScreen() {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
         className="relative z-10 w-full max-w-sm flex flex-col items-center gap-6"
       >
         {/* Logo */}
         <motion.div
-          initial={{ scale: 0.8 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 200 }}
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
           className="text-center"
         >
           <div className="flex items-center justify-center mb-3">
@@ -402,6 +403,7 @@ export function HomeScreen() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
               className="flex flex-col gap-3"
             >
               <button
@@ -439,8 +441,9 @@ export function HomeScreen() {
 
           {mode === 'create' && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-col gap-3"
             >
               <button
@@ -461,8 +464,9 @@ export function HomeScreen() {
 
           {mode === 'join' && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-col gap-3"
             >
               <input
