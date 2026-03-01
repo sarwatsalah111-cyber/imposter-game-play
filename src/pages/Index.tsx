@@ -1,3 +1,4 @@
+// Game entry point
 import { useGame, GameProvider } from '@/contexts/GameContext';
 import { HomeScreen } from '@/components/game/HomeScreen';
 import { LobbyScreen } from '@/components/game/LobbyScreen';
