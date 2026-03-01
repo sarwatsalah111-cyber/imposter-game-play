@@ -58,5 +58,8 @@ export function useGameEngine() {
 
     finishGame: (session_id: string, room_id: string) =>
       callEngine<{ success: boolean }>('finish-game', { session_id, room_id }),
+
+    kickPlayer: (session_id: string, room_id: string, target_session_id: string) =>
+      callEngine<{ success: boolean }>('kick-player', { session_id, room_id, target_session_id }),
   };
 }

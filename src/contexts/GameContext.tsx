@@ -48,11 +48,12 @@ interface GameActions {
   startGame: () => Promise<void>;
   advancePhase: (phase: GamePhase) => Promise<void>;
   markSpoke: () => Promise<void>;
-  vote: (targetSessionId: string) => Promise<void>;
-  leaveRoom: () => Promise<void>;
-  finishGame: () => Promise<void>;
-  clearError: () => void;
-  goHome: () => void;
+    vote: (targetSessionId: string) => Promise<void>;
+    kickPlayer: (targetSessionId: string) => Promise<void>;
+    leaveRoom: () => Promise<void>;
+    finishGame: () => Promise<void>;
+    clearError: () => void;
+    goHome: () => void;
 }
 
 const GameContext = createContext<(GameState & GameActions) | null>(null);
@@ -357,6 +358,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       try {
         await engine.vote(state.sessionId, state.room.id, targetSessionId);
         update({ hasVoted: true });
+      } catch (e: unknown) { update({ error: (e as Error).message }); }
+    },
+    kickPlayer: async (targetSessionId) => {
+      if (!state.room) return;
+      try {
+        await engine.kickPlayer(state.sessionId, state.room.id, targetSessionId);
       } catch (e: unknown) { update({ error: (e as Error).message }); }
     },
     leaveRoom: async () => {

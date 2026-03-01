@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus, Volume2, VolumeX, Vibrate } from 'lucide-react';
+import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, UserX } from 'lucide-react';
 import { useState } from 'react';
 import { playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
 
@@ -57,7 +57,7 @@ function ToggleSetting({ label, icon: Icon, enabled, onToggle }: {
 }
 
 export function LobbyScreen() {
-  const { room, players, isHost, language, sessionId, startGame, updateSettings, leaveRoom, loading } = useGame();
+  const { room, players, isHost, language, sessionId, startGame, updateSettings, leaveRoom, kickPlayer, loading } = useGame();
   const [copied, setCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
@@ -226,6 +226,15 @@ export function LobbyScreen() {
                     <span className="text-primary text-xs ml-1">({t('game.you', language)})</span>
                   )}
                 </span>
+                {isHost && !player.is_host && player.session_id !== sessionId && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); playClick(); kickPlayer(player.session_id); }}
+                    className="w-7 h-7 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+                    title={t('lobby.kick', language)}
+                  >
+                    <UserX className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 <Wifi className={`w-3 h-3 ${player.is_online ? 'text-neon-green' : 'text-destructive'}`} />
               </motion.div>
             ))}
