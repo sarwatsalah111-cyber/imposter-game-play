@@ -464,6 +464,8 @@ function ResultsPhase() {
   const { results, players, room, language, isHost, sessionId, startGame, goHome, finishGame, resetScores } = useGame();
   const soundPlayedRef = useRef(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const onlinePlayersCount = players.filter(p => p.is_online).length;
+  const canStartNextRound = !!room && onlinePlayersCount >= room.min_players;
 
   useEffect(() => {
     if (results && !soundPlayedRef.current) {
@@ -497,10 +499,11 @@ function ResultsPhase() {
           {isHost && (
             <>
               <button
-                onClick={startGame}
-                className="w-full py-3 spooky-btn-gold spooky-btn text-sm glow-gold flex items-center justify-center gap-2"
+                onClick={() => { if (canStartNextRound) startGame(); }}
+                disabled={!canStartNextRound}
+                className="w-full py-3 spooky-btn-gold spooky-btn text-sm glow-gold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {t('game.nextRound', language)} <ArrowRight className="w-4 h-4" />
+                {canStartNextRound ? t('game.nextRound', language) : t('lobby.minPlayers', language, { min: room?.min_players ?? 3 })} <ArrowRight className="w-4 h-4" />
               </button>
               <button
                 onClick={finishGame}
@@ -612,10 +615,11 @@ function ResultsPhase() {
       {isHost && (
         <div className="w-full max-w-xs flex flex-col gap-2">
           <button
-            onClick={startGame}
-            className="w-full py-3 spooky-btn-gold spooky-btn text-sm glow-gold flex items-center justify-center gap-2"
+            onClick={() => { if (canStartNextRound) startGame(); }}
+            disabled={!canStartNextRound}
+            className="w-full py-3 spooky-btn-gold spooky-btn text-sm glow-gold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {t('game.nextRound', language)} <ArrowRight className="w-4 h-4" />
+            {canStartNextRound ? t('game.nextRound', language) : t('lobby.minPlayers', language, { min: room?.min_players ?? 3 })} <ArrowRight className="w-4 h-4" />
           </button>
           <button
             onClick={finishGame}
