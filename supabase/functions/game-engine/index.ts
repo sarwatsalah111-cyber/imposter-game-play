@@ -420,6 +420,24 @@ Deno.serve(async (req) => {
         return json({ success: true });
       }
 
+      case 'kick-player': {
+        const { session_id, room_id, target_session_id } = params;
+        if (!session_id || !room_id || !target_session_id) return json({ error: 'Missing fields' }, 400);
+        if (session_id === target_session_id) return json({ error: 'Cannot kick yourself' }, 400);
+
+        const { data: room } = await supabase.from('rooms').select('host_session_id, phase').eq('id', room_id).single();
+        if (!room) return json({ error: 'Room not found' }, 404);
+        if (room.host_session_id !== session_id) return json({ error: 'Only host can kick' }, 403);
+        if (room.phase !== 'lobby') return json({ error: 'Can only kick in lobby' }, 400);
+
+        await supabase.from('room_players').delete().eq('room_id', room_id).eq('session_id', target_session_id);
+        await supabase.from('room_events').insert({
+          room_id, event_type: 'kicked', session_id, data: { target: target_session_id },
+        });
+
+        return json({ success: true });
+      }
+
       default:
         return json({ error: 'Unknown action' }, 400);
     }
