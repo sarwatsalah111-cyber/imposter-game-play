@@ -1,51 +1,76 @@
 
 
-## Problem
+## Architecture Constraint
 
-The game can get stuck on the lobby/loading screen because:
-1. No timeouts on `createRoom`/`joinRoom` — if the edge function is slow, the UI spins forever with no escape
-2. No reconnect/recovery — if a player refreshes, they lose their room context entirely
-3. `startGame` has no timeout or rollback — if the backend is slow, the host sees infinite loading
-4. No host migration timeout — if the host disconnects, the room dies
-5. The lobby has no "stuck" detection or retry buttons
+Lovable projects cannot run persistent WebSocket servers (no Node.js backend, no long-lived processes). The platform supports only stateless HTTP edge functions and Supabase Realtime (which already uses WebSockets under the hood for push updates).
 
-## Plan
+A "pure WebSocket server" architecture as described in the prompt is **not possible** on this platform. However, every outcome you listed — no stuck lobby, atomic start, reconnect safety, host migration, no desync — **can be achieved** by hardening the current Supabase Realtime + Edge Function architecture.
 
-### 1. Add session recovery (reconnect-safe)
+The current bugs (desync, stuck lobby, only-host-sees-updates) are implementation issues, not architectural ones. Here is the plan to fix them all.
 
-**`src/lib/session.ts`** — Add `saveRoomContext` / `getRoomContext` / `clearRoomContext` to persist `{roomId, roomCode, sessionId}` in localStorage.
+---
 
-**`src/contexts/GameContext.tsx`** — On mount, check for saved room context. If found, attempt to re-fetch the room and player record. If valid, restore the correct screen based on `room.phase`. If invalid (room closed, player kicked), clear context and show home.
+## Plan: Harden Realtime Sync to Achieve All Listed Outcomes
 
-### 2. Add timeouts + retry UI to all loading operations
+### 1. Make `start-game` truly atomic with a status lock
 
-**`src/contexts/GameContext.tsx`** — Add a `loadingTimeout` ref. When `loading` is set to true, start a 8-second timer. If it fires, set `loading: false` and `error: 'Connection timed out. Please retry.'`. This prevents infinite spinners on `createRoom`, `joinRoom`, and `startGame`.
+**`supabase/functions/game-engine/index.ts`** — `start-game` action:
+- Before doing anything, set `status = 'starting'` on the room. If the room is already `starting`, return an error (prevents double-start).
+- If any step fails (word selection, imposter selection, DB update), roll back status to `waiting` and return a clear error.
+- Add a 10-second watchdog: if the room stays in `starting` for >10s, any client can reset it via a new `recover-start` action.
 
-### 3. Add error + retry UI to LobbyScreen
+### 2. Fix round state broadcast to guarantee all-player sync
 
-**`src/components/game/LobbyScreen.tsx`** — When `error` is set, show an error banner with a dismiss button. The existing `canStart` check already handles the start button state; add a visible error state with retry action.
+**`supabase/functions/game-engine/index.ts`** — After updating the room row with the new round's `phase`, `current_round`, `secret_word`, and `imposter_session_id`, insert a `round_started` event into `room_events` with the `round_index`. This triggers the Realtime subscription for all clients.
 
-### 4. Add startGame rollback in edge function
+**`src/contexts/GameContext.tsx`** — The Realtime handler already watches `rooms` table changes. The fix:
+- When `current_round` changes, **unconditionally** clear `reveal`, `results`, `hasVoted`, `spokeStatus` — this already exists but needs to also force a re-fetch even if `phase` didn't change (covers edge case where polling catches the update before Realtime).
+- Add a `round_started` event listener on `room_events` as a backup trigger to clear state and re-fetch reveal.
 
-**`supabase/functions/game-engine/index.ts`** — In `start-game`, wrap the multi-step operation: if word selection or role assignment fails, don't leave the room in a broken state. Return error and keep `phase: 'lobby'` so the host can retry. Currently it updates phase to `reveal` at the end, which is correct, but add explicit error handling around each step.
+### 3. Add `STARTING` status to UI with progress + timeout
 
-### 5. Add host migration watchdog
+**`src/components/game/LobbyScreen.tsx`** — When `room.status === 'starting'`:
+- Show a progress overlay: "Starting match..." with a 10-second timeout.
+- If timeout fires, show "Start failed — Retry" button (host) or "Reconnect" (players).
 
-**`src/contexts/GameContext.tsx`** — In the polling interval (already 3s), check if the current host's `is_online` is false and `last_heartbeat` is older than 25 seconds. If so, the oldest connected player calls a new `migrate-host` engine action.
+### 4. Strengthen reconnect flow
 
-**`supabase/functions/game-engine/index.ts`** — Add `migrate-host` action: verifies current host is disconnected (last_heartbeat > 25s), assigns requesting player as new host if they're the oldest connected player.
+**`src/contexts/GameContext.tsx`** — Session recovery on mount:
+- After restoring room state, if `phase` is `reveal` or `discussion`, immediately fetch `get-reveal` to get the current round's role/word.
+- If `phase` is `results`, fetch `get-results`.
+- This ensures reconnecting players always see current round data.
 
-### 6. Add "stuck in lobby" detection
+### 5. Add idempotency to critical actions
 
-**`src/components/game/LobbyScreen.tsx`** — If the component has been mounted for >10 seconds and `players.length === 0` (no players loaded), show a "Connection issue — Retry" button that calls `fetchPlayers` and `fetchRoom`.
+**`supabase/functions/game-engine/index.ts`**:
+- `start-game`: If room is already in `reveal` phase for the requested round, return success (idempotent).
+- `vote`: Already idempotent (checks for existing vote).
+- `mark-spoke`: Already has rate limiting.
 
-### Summary of file changes
+### 6. Strengthen host migration
 
-| File | Change |
-|------|--------|
-| `src/lib/session.ts` | Add room context persistence functions |
-| `src/contexts/GameContext.tsx` | Add session recovery on mount, loading timeouts, host migration watchdog |
-| `src/components/game/LobbyScreen.tsx` | Add error banner, stuck detection with retry button |
-| `supabase/functions/game-engine/index.ts` | Add `migrate-host` action, harden `start-game` error handling |
-| `src/hooks/useGameEngine.ts` | Add `migrateHost` method |
+**`supabase/functions/game-engine/index.ts`** — `migrate-host` action:
+- Already exists. Add: if room is in `starting` status and host disconnected, new host can reset to `waiting` status.
+
+### 7. Add `recover-start` action for stuck `starting` state
+
+**`supabase/functions/game-engine/index.ts`** — New action `recover-start`:
+- If room `status === 'starting'` and `updated_at` is older than 10 seconds, reset to `status: 'waiting', phase: 'lobby'`.
+- Any player can call this (not host-only, since host may be the one stuck).
+
+### 8. Faster Realtime convergence
+
+**`src/contexts/GameContext.tsx`**:
+- Reduce the polling fallback from 3s to 2s during phase transitions (reveal, voting).
+- After `startGame` succeeds for the host, don't locally set phase — wait for the Realtime update so host and players converge on the same trigger.
+
+---
+
+## File Changes Summary
+
+| File | Changes |
+|------|---------|
+| `supabase/functions/game-engine/index.ts` | Add `starting` status lock to `start-game`, rollback on failure, add `recover-start` action, make `start-game` idempotent |
+| `src/contexts/GameContext.tsx` | Add `round_started` event listener, unconditional state clear on round change, fetch reveal/results on reconnect based on phase, remove host-side local phase override in `startGame` |
+| `src/components/game/LobbyScreen.tsx` | Show "Starting match..." overlay when `status === 'starting'`, 10s timeout with retry |
 
