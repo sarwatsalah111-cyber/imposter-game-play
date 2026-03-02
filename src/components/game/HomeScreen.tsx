@@ -22,7 +22,7 @@ function HowToPlayModal({ language, onClose }: { language: Language; onClose: ()
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain p-4 py-[env(safe-area-inset-top,1rem)] bg-background/80 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
@@ -30,7 +30,7 @@ function HowToPlayModal({ language, onClose }: { language: Language; onClose: ()
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm spooky-panel p-5 max-h-[80vh] overflow-y-auto"
+        className="w-full max-w-sm spooky-panel p-5 my-auto"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple flex items-center gap-2">
@@ -70,7 +70,7 @@ function AboutModal({ language, onClose }: { language: Language; onClose: () => 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain p-4 py-[env(safe-area-inset-top,1rem)] bg-background/80 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
@@ -78,7 +78,7 @@ function AboutModal({ language, onClose }: { language: Language; onClose: () => 
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm spooky-panel p-5"
+        className="w-full max-w-sm spooky-panel p-5 my-auto"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple flex items-center gap-2">
@@ -176,7 +176,7 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain p-4 py-[env(safe-area-inset-top,1rem)] bg-background/80 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
@@ -184,7 +184,7 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm spooky-panel p-5 max-h-[80vh] overflow-y-auto"
+        className="w-full max-w-sm spooky-panel p-5 my-auto"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple flex items-center gap-2">
