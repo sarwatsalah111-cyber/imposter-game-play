@@ -2,6 +2,17 @@ const SESSION_KEY = 'imposter_session_id';
 const NICKNAME_KEY = 'imposter_nickname';
 const SETTINGS_KEY = 'imposter_default_settings';
 const ROOM_CONTEXT_KEY = 'imposter_room_context';
+const SORANI_FONT_KEY = 'imposter_sorani_font';
+
+export type SoraniFont = 'peshang' | 'zana';
+
+export function getSoraniFont(): SoraniFont {
+  return (localStorage.getItem(SORANI_FONT_KEY) as SoraniFont) || 'zana';
+}
+
+export function setSoraniFont(font: SoraniFont): void {
+  localStorage.setItem(SORANI_FONT_KEY, font);
+}
 
 export interface RoomContext {
   roomId: string;

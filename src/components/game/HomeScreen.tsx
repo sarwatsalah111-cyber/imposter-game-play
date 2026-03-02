@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t, LANGUAGES, type Language } from '@/lib/i18n';
-import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, BookOpen, ChevronDown } from 'lucide-react';
+import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, BookOpen, ChevronDown, Type } from 'lucide-react';
 import { SpyLogo } from './SpyLogo';
 import { startAmbient, stopAmbient, playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
-import { getDefaultSettings, saveDefaultSettings, type DefaultGameSettings } from '@/lib/session';
+import { getDefaultSettings, saveDefaultSettings, type DefaultGameSettings, getSoraniFont, setSoraniFont as saveSoraniFont, type SoraniFont } from '@/lib/session';
 import { WordBankModal } from './WordBankManager';
 
 function HowToPlayModal({ language, onClose }: { language: Language; onClose: () => void }) {
@@ -147,6 +147,7 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
   const [settings, setSettings] = useState<DefaultGameSettings>(getDefaultSettings());
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
   const [vibrationOn, setVibrationOn] = useState(isVibrationEnabled());
+  const [soraniFont, setSoraniFontState] = useState<SoraniFont>(getSoraniFont());
   const [saved, setSaved] = useState(false);
 
   const updateSetting = (key: keyof DefaultGameSettings, value: number) => {
@@ -157,6 +158,8 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
     saveDefaultSettings(settings);
     setSoundEnabled(soundOn);
     setVibrationEnabled(vibrationOn);
+    saveSoraniFont(soraniFont);
+    window.dispatchEvent(new Event('sorani-font-changed'));
     if (!soundOn) stopAmbient();
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
@@ -247,7 +250,35 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
           </div>
         </div>
 
-        <div className="flex gap-2">
+        {/* Sorani Font Selector */}
+        <div className="border-t border-border pt-3 mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Type className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              {t('settings.soraniFont', language)}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            {([
+              { key: 'peshang' as SoraniFont, label: 'Peshang', sampleClass: 'font-sorani-peshang' },
+              { key: 'zana' as SoraniFont, label: 'UniQaidar Zana', sampleClass: 'font-sorani-zana' },
+            ]).map(font => (
+              <button
+                key={font.key}
+                onClick={() => { playClick(); setSoraniFontState(font.key); }}
+                className={`flex-1 py-2.5 px-3 rounded-lg border text-sm transition-all ${
+                  soraniFont === font.key
+                    ? 'border-primary bg-primary/15 text-foreground'
+                    : 'border-border spooky-inner text-muted-foreground hover:border-primary/40'
+                }`}
+              >
+                <span className={font.sampleClass}>{font.label}</span>
+              </button>
+            ))}
+          </div>
+          <p className={`text-center text-lg mt-2 text-accent ${soraniFont === 'peshang' ? 'font-sorani-peshang' : 'font-sorani-zana'}`}>
+            فێڵباز — نموونە
+          </p>
           <button onClick={handleReset} className="flex-1 py-2.5 spooky-btn text-xs">
             {t('settings.reset', language)}
           </button>
