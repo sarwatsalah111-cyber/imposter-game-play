@@ -17,6 +17,7 @@ export default {
         display: ['Cinzel', 'serif'],
         body: ['Inter', 'sans-serif'],
         sorani: ['PeshangDes', 'sans-serif'],
+        'sorani-zana': ['UniQaidarZana', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

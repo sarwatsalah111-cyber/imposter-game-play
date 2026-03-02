@@ -8,6 +8,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'UniQaidarZana';
+  src: url('/fonts/UniQAIDAR_ZANA.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -288,7 +296,18 @@
   }
 }
 
-/* Kurdish Sorani font override */
+/* Kurdish Sorani font overrides */
+.font-sorani-peshang,
+.font-sorani-peshang * {
+  font-family: 'PeshangDes', sans-serif !important;
+}
+
+.font-sorani-zana,
+.font-sorani-zana * {
+  font-family: 'UniQaidarZana', sans-serif !important;
+}
+
+/* Default alias for backwards compat */
 .font-sorani,
 .font-sorani * {
   font-family: 'PeshangDes', sans-serif !important;
