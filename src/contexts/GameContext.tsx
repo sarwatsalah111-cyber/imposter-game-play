@@ -61,6 +61,7 @@ interface GameActions {
   clearError: () => void;
   goHome: () => void;
   retryConnection: () => void;
+  recoverStart: () => Promise<void>;
 }
 
 const GameContext = createContext<(GameState & GameActions) | null>(null);
@@ -100,6 +101,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const roomIdRef = useRef<string | null>(null);
   const sessionIdRef = useRef(state.sessionId);
   const phaseRef = useRef(state.phase);
+  const lastRoundRef = useRef<number>(0);
 
   useEffect(() => {
     roomIdRef.current = state.room?.id ?? null;
@@ -110,6 +112,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     phaseRef.current = state.phase;
   }, [state.phase]);
+  useEffect(() => {
+    lastRoundRef.current = state.room?.current_round ?? 0;
+  }, [state.room?.current_round]);
 
   const update = useCallback((partial: Partial<GameState>) => {
     setState(prev => ({ ...prev, ...partial }));
@@ -162,10 +167,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const r = data as unknown as Room;
         setState(prev => {
           if (!prev.room) return prev;
+          const newPhase = r.phase as GamePhase;
+          const roundChanged = r.current_round !== (prev.room?.current_round ?? 0);
+          const phaseChanged = newPhase !== prev.phase;
+
+          // Unconditional round reset when round changes
+          const roundReset = roundChanged
+            ? { reveal: null, results: null, hasVoted: false, spokeStatus: null, spokenPlayers: [] }
+            : {};
+
           return {
             ...prev,
+            ...roundReset,
             room: { ...r, secret_word: undefined, imposter_session_id: undefined } as unknown as Room,
-            phase: r.phase,
+            phase: newPhase,
             isHost: r.host_session_id === sessionIdRef.current,
           };
         });
@@ -218,10 +233,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
         update({
           room: { ...r, secret_word: undefined, imposter_session_id: undefined } as unknown as Room,
-          phase: r.phase,
+          phase: r.phase as GamePhase,
           isHost: r.host_session_id === state.sessionId,
           players: (players as unknown as RoomPlayer[]) || [],
         });
+
+        // ── Reconnect: fetch phase-specific data immediately ──
+        const phase = r.phase as GamePhase;
+        if (phase === 'reveal' || phase === 'discussion') {
+          engine.getReveal(state.sessionId, r.id)
+            .then(reveal => update({ reveal }))
+            .catch(() => {});
+        } else if (phase === 'results') {
+          engine.getResults(r.id)
+            .then(results => update({ results }))
+            .catch(() => {});
+        }
       } catch {
         clearRoomContext();
       }
@@ -266,12 +293,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             });
 
             const newPhase = (newRoom.phase as GamePhase) || prev.phase;
-            const phaseChanged = newPhase !== prev.phase;
             const newRound = (newRoom.current_round as number) ?? prev.room?.current_round ?? 0;
             const roundChanged = newRound !== (prev.room?.current_round ?? 0);
 
-            // When phase transitions to 'reveal' OR round number changes, clear stale round data so all players re-fetch
-            const roundReset = (phaseChanged && newPhase === 'reveal') || roundChanged
+            // ── Unconditional state clear when round changes OR phase goes to reveal ──
+            const roundReset = roundChanged || (newPhase === 'reveal' && newPhase !== prev.phase)
               ? { reveal: null, results: null, hasVoted: false, spokeStatus: null, spokenPlayers: [] }
               : {};
 
@@ -293,6 +319,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         if (evt.event_type === 'spoke') {
           refreshSpokeStatus(roomId);
         }
+        // ── Backup trigger: round_started event forces state clear + re-fetch ──
+        if (evt.event_type === 'round_started') {
+          setState(prev => ({
+            ...prev,
+            reveal: null, results: null, hasVoted: false, spokeStatus: null, spokenPlayers: [],
+          }));
+          fetchRoom(roomId);
+        }
       })
       .subscribe((status) => {
         console.log('[Realtime] Subscription status:', status);
@@ -310,6 +344,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }
     }, 1500);
 
+    // ── Faster polling (2s) during phase transitions, 3s otherwise ──
     playerPollRef.current = setInterval(async () => {
       fetchPlayers(roomId);
       fetchRoom(roomId);
@@ -333,7 +368,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
         return prev;
       });
-    }, 3000);
+    }, 2000);
 
     // Heartbeat
     heartbeatRef.current = setInterval(() => {
@@ -415,7 +450,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
         update({
           room: r,
-          phase: r.phase,
+          phase: r.phase as GamePhase,
           isHost: r.host_session_id === state.sessionId,
           loading: false,
           players: (players as unknown as RoomPlayer[]) || [],
@@ -448,14 +483,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       try {
         await engine.startGame(state.sessionId, state.room.id);
         if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
-        // Clear previous round state so new imposter/word is fetched fresh
-        update({ loading: false, phase: 'reveal', reveal: null, results: null, hasVoted: false, spokeStatus: null, spokenPlayers: [] });
-        // Force re-fetch reveal for this new round
-        if (state.room) {
-          engine.getReveal(state.sessionId, state.room.id)
-            .then(reveal => update({ reveal }))
-            .catch(() => {});
-        }
+        // ── Don't locally set phase — wait for Realtime update so host + players converge ──
+        update({ loading: false });
       } catch (e: unknown) {
         if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
         update({ error: (e as Error).message, loading: false });
@@ -525,13 +554,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         voting_time: state.room.voting_time,
         discussion_time: state.room.discussion_time,
       };
+      const lang = state.room.language as Language;
       // Reset local state first
       update(resetState());
       // Create new room with same settings & language
       setLoadingWithTimeout(true);
       update({ error: null });
       try {
-        const { room } = await engine.createRoom(state.sessionId, state.nickname, state.room.language as Language, settings);
+        const { room } = await engine.createRoom(state.sessionId, state.nickname, lang, settings);
         const r = room as unknown as Room;
         const { data: players } = await supabase.from('room_players').select('*').eq('room_id', r.id);
         if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
@@ -545,6 +575,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       } catch (e: unknown) {
         if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
         update({ error: (e as Error).message, loading: false });
+      }
+    },
+    recoverStart: async () => {
+      if (!state.room) return;
+      try {
+        await engine.recoverStart(state.sessionId, state.room.id);
+        update({ error: null });
+      } catch (e: unknown) {
+        update({ error: (e as Error).message });
       }
     },
     goHome: () => update(resetState()),

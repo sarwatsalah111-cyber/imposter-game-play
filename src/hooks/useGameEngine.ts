@@ -107,5 +107,8 @@ export function useGameEngine() {
 
     migrateHost: (session_id: string, room_id: string) =>
       callEngine<{ success: boolean }>('migrate-host', { session_id, room_id }),
+
+    recoverStart: (session_id: string, room_id: string) =>
+      callEngine<{ success: boolean }>('recover-start', { session_id, room_id }),
   };
 }
