@@ -134,78 +134,141 @@ Deno.serve(async (req) => {
           .from('rooms').select('*').eq('id', room_id).single();
         if (!room) return json({ error: 'Room not found' }, 404);
         if (room.host_session_id !== session_id) return json({ error: 'Only host can start' }, 403);
+
+        // ── Idempotency: if already in reveal for the expected round, return success ──
+        const expectedRound = (room.phase === 'results') ? room.current_round + 1 : 1;
+        if (room.phase === 'reveal' && room.current_round === expectedRound) {
+          return json({ success: true, round: expectedRound });
+        }
+
         if (room.phase !== 'lobby' && room.phase !== 'results') return json({ error: 'Cannot start now' }, 400);
 
-        const { data: players } = await supabase
-          .from('room_players').select('*').eq('room_id', room_id).eq('is_online', true);
-        if (!players || players.length < room.min_players) {
-          return json({ error: `Need at least ${room.min_players} players` }, 400);
+        // ── Prevent double-start: reject if already 'starting' ──
+        if (room.status === 'starting') {
+          return json({ error: 'Game is already starting. Please wait.' }, 409);
         }
 
-        // Select word — exclude previous round's word to prevent repeats
-        const previousWord = room.secret_word || null;
-        const { data: words } = await supabase
-          .from('word_bank').select('word')
-          .eq('language', room.language).eq('is_active', true);
-        if (!words || words.length === 0) {
-          return json({ error: 'No words available for this language. Cannot start.' }, 500);
+        // ── Step 1: Acquire lock by setting status = 'starting' ──
+        const { error: lockErr } = await supabase.from('rooms').update({
+          status: 'starting', updated_at: new Date().toISOString(),
+        }).eq('id', room_id).eq('status', room.status); // optimistic lock on current status
+        if (lockErr) {
+          return json({ error: 'Failed to acquire start lock. Please retry.' }, 500);
         }
-        let availableWords = previousWord ? words.filter(w => w.word !== previousWord) : words;
-        if (availableWords.length === 0) availableWords = words; // fallback if only 1 word exists
-        const secretWord = availableWords[Math.floor(Math.random() * availableWords.length)].word;
 
-        // Select imposter — exclude previous round's imposter to prevent repeats (unless ≤2 players)
-        const previousImposter = room.imposter_session_id || null;
-        let eligiblePlayers = players.length > 2 && previousImposter
-          ? players.filter(p => p.session_id !== previousImposter)
-          : players;
-        if (eligiblePlayers.length === 0) eligiblePlayers = players; // safety fallback
-        const imposterIdx = Math.floor(Math.random() * eligiblePlayers.length);
-        const imposterSessionId = eligiblePlayers[imposterIdx].session_id;
-
-        const newRound = (room.phase === 'results') ? room.current_round + 1 : 1;
-
-        // Reset scores on first round of a new match
-        if (newRound === 1) {
-          const newMatchId = crypto.randomUUID();
-          await supabase.from('room_players').update({ score: 0, match_id: newMatchId }).eq('room_id', room_id);
-          await supabase.from('rooms').update({
-            match_id: newMatchId,
-            phase: 'reveal',
-            status: 'playing',
-            secret_word: secretWord,
-            imposter_session_id: imposterSessionId,
-            current_round: newRound,
-            updated_at: new Date().toISOString(),
-          }).eq('id', room_id);
-        } else {
-          const { error: updateErr } = await supabase.from('rooms').update({
-            phase: 'reveal',
-            status: 'playing',
-            secret_word: secretWord,
-            imposter_session_id: imposterSessionId,
-            current_round: newRound,
-            updated_at: new Date().toISOString(),
-          }).eq('id', room_id);
-          if (updateErr) {
-            console.error('start-game update failed:', updateErr);
-            return json({ error: 'Failed to start game. Please retry.' }, 500);
+        try {
+          const { data: players } = await supabase
+            .from('room_players').select('*').eq('room_id', room_id).eq('is_online', true);
+          if (!players || players.length < room.min_players) {
+            // ── Rollback: not enough players ──
+            await supabase.from('rooms').update({ status: 'waiting', updated_at: new Date().toISOString() }).eq('id', room_id);
+            return json({ error: `Need at least ${room.min_players} players` }, 400);
           }
+
+          // Select word — exclude previous round's word to prevent repeats
+          const previousWord = room.secret_word || null;
+          const { data: words } = await supabase
+            .from('word_bank').select('word')
+            .eq('language', room.language).eq('is_active', true);
+          if (!words || words.length === 0) {
+            await supabase.from('rooms').update({ status: 'waiting', updated_at: new Date().toISOString() }).eq('id', room_id);
+            return json({ error: 'No words available for this language. Cannot start.' }, 500);
+          }
+          let availableWords = previousWord ? words.filter(w => w.word !== previousWord) : words;
+          if (availableWords.length === 0) availableWords = words;
+          const secretWord = availableWords[Math.floor(Math.random() * availableWords.length)].word;
+
+          // Select imposter — exclude previous round's imposter to prevent repeats (unless ≤2 players)
+          const previousImposter = room.imposter_session_id || null;
+          let eligiblePlayers = players.length > 2 && previousImposter
+            ? players.filter(p => p.session_id !== previousImposter)
+            : players;
+          if (eligiblePlayers.length === 0) eligiblePlayers = players;
+          const imposterIdx = Math.floor(Math.random() * eligiblePlayers.length);
+          const imposterSessionId = eligiblePlayers[imposterIdx].session_id;
+
+          const newRound = (room.phase === 'results') ? room.current_round + 1 : 1;
+
+          // Reset scores on first round of a new match
+          if (newRound === 1) {
+            const newMatchId = crypto.randomUUID();
+            await supabase.from('room_players').update({ score: 0, match_id: newMatchId }).eq('room_id', room_id);
+            await supabase.from('rooms').update({
+              match_id: newMatchId,
+              phase: 'reveal',
+              status: 'playing',
+              secret_word: secretWord,
+              imposter_session_id: imposterSessionId,
+              current_round: newRound,
+              updated_at: new Date().toISOString(),
+            }).eq('id', room_id);
+          } else {
+            const { error: updateErr } = await supabase.from('rooms').update({
+              phase: 'reveal',
+              status: 'playing',
+              secret_word: secretWord,
+              imposter_session_id: imposterSessionId,
+              current_round: newRound,
+              updated_at: new Date().toISOString(),
+            }).eq('id', room_id);
+            if (updateErr) {
+              console.error('start-game update failed:', updateErr);
+              await supabase.from('rooms').update({ status: 'waiting', updated_at: new Date().toISOString() }).eq('id', room_id);
+              return json({ error: 'Failed to start game. Please retry.' }, 500);
+            }
+          }
+
+          // ── Insert round_started event for backup Realtime trigger ──
+          await supabase.from('room_events').insert({
+            room_id, event_type: 'round_started', session_id,
+            data: {
+              round: newRound,
+              word_selected: secretWord,
+              imposter_selected: imposterSessionId,
+              previous_word: previousWord,
+              previous_imposter: previousImposter,
+              player_count: players.length,
+            },
+          });
+
+          return json({ success: true, round: newRound });
+        } catch (err) {
+          // ── Rollback on any unexpected error ──
+          console.error('start-game unexpected error:', err);
+          await supabase.from('rooms').update({ status: 'waiting', updated_at: new Date().toISOString() }).eq('id', room_id);
+          return json({ error: 'Failed to start game. Please retry.' }, 500);
         }
+      }
+
+      // ── Recover from stuck 'starting' state ──
+      case 'recover-start': {
+        const { room_id } = params;
+        if (!room_id) return json({ error: 'Missing room_id' }, 400);
+
+        const { data: room } = await supabase
+          .from('rooms').select('status, updated_at').eq('id', room_id).single();
+        if (!room) return json({ error: 'Room not found' }, 404);
+
+        if (room.status !== 'starting') {
+          return json({ error: 'Room is not in starting state' }, 400);
+        }
+
+        const elapsed = Date.now() - new Date(room.updated_at).getTime();
+        if (elapsed < 10000) {
+          return json({ error: 'Start still in progress, please wait' }, 400);
+        }
+
+        // Reset to waiting
+        await supabase.from('rooms').update({
+          status: 'waiting', phase: 'lobby', updated_at: new Date().toISOString(),
+        }).eq('id', room_id);
 
         await supabase.from('room_events').insert({
-          room_id, event_type: 'started', session_id,
-          data: {
-            round: newRound,
-            word_selected: secretWord,
-            imposter_selected: imposterSessionId,
-            previous_word: previousWord,
-            previous_imposter: previousImposter,
-            player_count: players.length,
-          },
+          room_id, event_type: 'start_recovered', session_id: params.session_id || null,
+          data: { elapsed_ms: elapsed },
         });
 
-        return json({ success: true, round: newRound });
+        return json({ success: true, recovered: true });
       }
 
       case 'get-reveal': {
@@ -674,9 +737,17 @@ Deno.serve(async (req) => {
           .eq('room_id', room_id).eq('session_id', room.host_session_id);
         await supabase.from('room_players').update({ is_host: true })
           .eq('room_id', room_id).eq('session_id', session_id);
-        await supabase.from('rooms').update({
+
+        const updateData: Record<string, unknown> = {
           host_session_id: session_id, updated_at: new Date().toISOString(),
-        }).eq('id', room_id);
+        };
+        // If room was stuck in 'starting', new host resets to waiting
+        if (room.status === 'starting') {
+          updateData.status = 'waiting';
+          updateData.phase = 'lobby';
+        }
+
+        await supabase.from('rooms').update(updateData).eq('id', room_id);
 
         await supabase.from('room_events').insert({
           room_id, event_type: 'host_migrated', session_id,

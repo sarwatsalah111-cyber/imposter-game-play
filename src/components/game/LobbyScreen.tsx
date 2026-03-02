@@ -57,13 +57,15 @@ function ToggleSetting({ label, icon: Icon, enabled, onToggle }: {
 }
 
 export function LobbyScreen() {
-  const { room, players, isHost, language, sessionId, startGame, updateSettings, leaveRoom, kickPlayer, loading, error, clearError, retryConnection } = useGame();
+  const { room, players, isHost, language, sessionId, startGame, updateSettings, leaveRoom, kickPlayer, loading, error, clearError, retryConnection, recoverStart } = useGame();
   const [copied, setCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
   const [vibrationOn, setVibrationOn] = useState(isVibrationEnabled());
   const [isStuck, setIsStuck] = useState(false);
+  const [startingTimeout, setStartingTimeout] = useState(false);
   const mountTimeRef = useRef(Date.now());
+  const startingTimerRef = useRef<NodeJS.Timeout>();
 
   // ─── Debounced settings: batch changes and send once after 400ms idle ───
   const pendingSettingsRef = useRef<Record<string, unknown>>({});
@@ -90,6 +92,22 @@ export function LobbyScreen() {
     }, 3000);
     return () => clearInterval(timer);
   }, [players.length]);
+
+  // ── Starting status watchdog: 10s timeout ──
+  useEffect(() => {
+    if (room?.status === 'starting') {
+      setStartingTimeout(false);
+      startingTimerRef.current = setTimeout(() => {
+        setStartingTimeout(true);
+      }, 10000);
+    } else {
+      setStartingTimeout(false);
+      if (startingTimerRef.current) clearTimeout(startingTimerRef.current);
+    }
+    return () => {
+      if (startingTimerRef.current) clearTimeout(startingTimerRef.current);
+    };
+  }, [room?.status]);
 
   // Flush pending settings on unmount
   useEffect(() => {
@@ -158,6 +176,47 @@ export function LobbyScreen() {
             >
               Retry
             </button>
+          </motion.div>
+        )}
+
+        {/* Starting overlay */}
+        {room.status === 'starting' && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-4 spooky-panel p-6 text-center"
+          >
+            <div className="flex flex-col items-center gap-3">
+              {!startingTimeout ? (
+                <>
+                  <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                  <p className="font-display font-bold text-accent text-sm uppercase tracking-wider">
+                    Starting match...
+                  </p>
+                  <div className="w-full max-w-[200px] h-1.5 rounded-full bg-muted overflow-hidden">
+                    <motion.div
+                      className="h-full bg-accent rounded-full"
+                      initial={{ width: '0%' }}
+                      animate={{ width: '100%' }}
+                      transition={{ duration: 10, ease: 'linear' }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-6 h-6 text-destructive" />
+                  <p className="font-display font-bold text-destructive text-sm uppercase tracking-wider">
+                    Start failed
+                  </p>
+                  <button
+                    onClick={() => { playClick(); isHost ? startGame() : recoverStart(); }}
+                    className="px-4 py-2 rounded-lg text-xs font-bold bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
+                  >
+                    {isHost ? 'Retry Start' : 'Reconnect'}
+                  </button>
+                </>
+              )}
+            </div>
           </motion.div>
         )}
 
