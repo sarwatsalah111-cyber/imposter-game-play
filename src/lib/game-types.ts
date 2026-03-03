@@ -43,4 +43,5 @@ export interface Vote {
 export interface RevealData {
   role: 'imposter' | 'normal';
   word?: string;
+  translations?: Record<string, string>;
 }

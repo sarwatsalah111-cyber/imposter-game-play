@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
           const previousWord = room.secret_word || null;
           const { data: words } = await supabase
             .from('word_bank').select('word')
-            .eq('language', room.language).eq('is_active', true);
+            .eq('is_active', true);
           if (!words || words.length === 0) {
             await supabase.from('rooms').update({ status: 'waiting', updated_at: new Date().toISOString() }).eq('id', room_id);
             return json({ error: 'No words available for this language. Cannot start.' }, 500);
@@ -287,7 +287,13 @@ Deno.serve(async (req) => {
         if (session_id === room.imposter_session_id) {
           return json({ role: 'imposter' });
         }
-        return json({ role: 'normal', word: room.secret_word });
+
+        // Look up translations from word_bank
+        const { data: wordEntry } = await supabase
+          .from('word_bank').select('translations')
+          .eq('word', room.secret_word).maybeSingle();
+
+        return json({ role: 'normal', word: room.secret_word, translations: (wordEntry?.translations as Record<string, string>) || {} });
       }
 
       case 'mark-spoke': {
