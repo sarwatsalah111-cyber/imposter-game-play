@@ -331,6 +331,7 @@ export type Database = {
           is_active: boolean
           language: string
           normalized_text: string
+          translations: Json | null
           word: string
         }
         Insert: {
@@ -340,6 +341,7 @@ export type Database = {
           is_active?: boolean
           language?: string
           normalized_text: string
+          translations?: Json | null
           word: string
         }
         Update: {
@@ -349,6 +351,7 @@ export type Database = {
           is_active?: boolean
           language?: string
           normalized_text?: string
+          translations?: Json | null
           word?: string
         }
         Relationships: []

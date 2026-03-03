@@ -52,7 +52,7 @@ export function useGameEngine() {
       callEngine<{ success: boolean; round: number }>('start-game', { session_id, room_id }),
 
     getReveal: (session_id: string, room_id: string) =>
-      callEngine<{ role: 'imposter' | 'normal'; word?: string }>('get-reveal', { session_id, room_id }),
+      callEngine<{ role: 'imposter' | 'normal'; word?: string; translations?: Record<string, string> }>('get-reveal', { session_id, room_id }),
 
     advancePhase: (session_id: string, room_id: string, phase: string) =>
       callEngine<{ success: boolean }>('advance-phase', { session_id, room_id, phase }),
