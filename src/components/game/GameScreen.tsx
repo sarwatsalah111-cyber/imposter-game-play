@@ -116,7 +116,8 @@ function RevealPhase() {
 
   // Build other-language entries (exclude primary)
   const langLabels: Record<string, string> = {
-    'KU_CENTRAL': 'کوردی',
+    'KU_CENTRAL': 'کوردی سۆرانی',
+    'KU_KURMANJI': 'Kurmancî',
     'EN': 'English',
     'AR': 'العربية',
   };
