@@ -107,15 +107,16 @@
 @layer utilities {
   /* Spooky panel – glassmorphism container */
   .spooky-panel {
-    background: linear-gradient(145deg, hsl(270 35% 18% / 0.65), hsl(270 35% 12% / 0.55));
-    backdrop-filter: blur(20px) saturate(1.5);
-    -webkit-backdrop-filter: blur(20px) saturate(1.5);
-    border: 2px solid hsl(270 40% 40% / 0.2);
-    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
     box-shadow:
-      inset 0 1px 0 hsl(270 50% 80% / 0.08),
-      0 4px 20px hsl(270 50% 5% / 0.6),
-      0 0 40px hsl(280 75% 55% / 0.05);
+      0 8px 32px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 0 20px 10px rgba(255, 255, 255, 0.03);
     position: relative;
     overflow: hidden;
   }
@@ -126,22 +127,39 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, hsl(280 75% 55% / 0.5), transparent);
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  }
+
+  .spooky-panel::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), transparent, rgba(255, 255, 255, 0.2));
+    pointer-events: none;
   }
 
   /* Spooky inner panel – subtle glass */
   .spooky-inner {
-    background: linear-gradient(145deg, hsl(270 40% 8% / 0.6), hsl(270 40% 6% / 0.5));
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid hsl(270 35% 25% / 0.25);
-    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .spooky-inner:hover {
-    border-color: hsl(270 35% 40% / 0.35);
-    box-shadow: 0 0 12px hsl(280 75% 55% / 0.08);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 0 20px 5px rgba(255, 255, 255, 0.02);
   }
 
   /* Spider web corner decoration */
@@ -160,26 +178,29 @@
 
   /* Glassmorphism base */
   .glass {
-    background: hsl(270 40% 20% / 0.35);
-    backdrop-filter: blur(16px) saturate(1.4);
-    -webkit-backdrop-filter: blur(16px) saturate(1.4);
-    border: 1px solid hsl(270 40% 50% / 0.15);
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 20px;
     box-shadow:
-      inset 0 1px 0 hsl(270 50% 80% / 0.08),
-      0 4px 24px hsl(270 50% 5% / 0.4);
+      0 8px 32px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 0 20px 10px rgba(255, 255, 255, 0.03);
   }
 
   /* Spooky button styles — glassmorphism + snappy feedback */
   .spooky-btn {
-    background: linear-gradient(145deg, hsl(280 60% 40% / 0.6), hsl(280 60% 30% / 0.5));
-    backdrop-filter: blur(12px) saturate(1.3);
-    -webkit-backdrop-filter: blur(12px) saturate(1.3);
-    border: 2px solid hsl(280 50% 55% / 0.3);
-    border-radius: 0.75rem;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 16px;
     box-shadow:
-      inset 0 1px 0 hsl(280 60% 70% / 0.15),
-      0 2px 8px hsl(270 50% 5% / 0.5),
-      0 0 0 0 hsl(280 75% 55% / 0);
+      0 4px 16px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.08);
     color: hsl(270 30% 95%);
     font-family: var(--font-display);
     font-weight: 700;
@@ -190,21 +211,33 @@
     will-change: transform, box-shadow, background;
     cursor: pointer;
     user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .spooky-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
   }
   .spooky-btn:hover {
-    background: linear-gradient(145deg, hsl(280 60% 45% / 0.7), hsl(280 60% 35% / 0.6));
-    border-color: hsl(280 50% 60% / 0.5);
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
     box-shadow:
-      inset 0 1px 0 hsl(280 60% 75% / 0.2),
-      0 8px 24px hsl(280 75% 55% / 0.3),
-      0 0 20px hsl(280 75% 55% / 0.15);
+      0 8px 32px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 0 20px 10px rgba(255, 255, 255, 0.03);
     transform: translateY(-2px) scale(1.02) translateZ(0);
   }
   .spooky-btn:active {
     transform: translateY(1px) scale(0.97) translateZ(0);
+    background: rgba(255, 255, 255, 0.08);
     box-shadow:
-      inset 0 2px 4px hsl(270 50% 5% / 0.3),
-      0 1px 4px hsl(270 50% 5% / 0.4);
+      0 2px 8px rgba(0, 0, 0, 0.2),
+      inset 0 2px 4px rgba(0, 0, 0, 0.1);
     transition-duration: 0.08s;
   }
   .spooky-btn:disabled {
@@ -214,44 +247,48 @@
   }
 
   .spooky-btn-gold {
-    background: linear-gradient(145deg, hsl(45 85% 45% / 0.65), hsl(35 90% 35% / 0.55));
-    border: 2px solid hsl(45 80% 55% / 0.4);
-    color: hsl(270 40% 8%);
+    background: rgba(255, 200, 50, 0.2);
+    border: 1px solid rgba(255, 200, 50, 0.35);
+    color: hsl(45 95% 70%);
     box-shadow:
-      inset 0 1px 0 hsl(45 90% 70% / 0.2),
-      0 2px 8px hsl(45 90% 40% / 0.3);
+      0 4px 16px rgba(255, 200, 50, 0.1),
+      inset 0 1px 0 rgba(255, 200, 50, 0.4),
+      inset 0 -1px 0 rgba(255, 200, 50, 0.08);
   }
   .spooky-btn-gold:hover {
-    background: linear-gradient(145deg, hsl(45 85% 50% / 0.75), hsl(35 90% 40% / 0.65));
-    border-color: hsl(45 80% 60% / 0.6);
+    background: rgba(255, 200, 50, 0.3);
+    border-color: rgba(255, 200, 50, 0.5);
     box-shadow:
-      inset 0 1px 0 hsl(45 90% 75% / 0.25),
-      0 8px 24px hsl(45 90% 50% / 0.35),
-      0 0 20px hsl(45 90% 50% / 0.2);
+      0 8px 32px rgba(255, 200, 50, 0.15),
+      inset 0 1px 0 rgba(255, 200, 50, 0.5),
+      inset 0 0 20px 10px rgba(255, 200, 50, 0.03);
     transform: translateY(-2px) scale(1.02) translateZ(0);
   }
   .spooky-btn-gold:active {
     transform: translateY(1px) scale(0.97) translateZ(0);
-    box-shadow:
-      inset 0 2px 4px hsl(45 90% 20% / 0.3),
-      0 1px 4px hsl(45 90% 30% / 0.3);
+    background: rgba(255, 200, 50, 0.12);
     transition-duration: 0.08s;
   }
 
   .spooky-btn-danger {
-    background: linear-gradient(145deg, hsl(0 65% 40% / 0.6), hsl(0 65% 30% / 0.5));
-    border: 2px solid hsl(0 60% 50% / 0.35);
+    background: rgba(255, 80, 80, 0.15);
+    border: 1px solid rgba(255, 80, 80, 0.3);
+    box-shadow:
+      0 4px 16px rgba(255, 80, 80, 0.08),
+      inset 0 1px 0 rgba(255, 80, 80, 0.3);
   }
   .spooky-btn-danger:hover {
-    background: linear-gradient(145deg, hsl(0 65% 45% / 0.7), hsl(0 65% 35% / 0.6));
-    border-color: hsl(0 60% 55% / 0.5);
+    background: rgba(255, 80, 80, 0.25);
+    border-color: rgba(255, 80, 80, 0.45);
     box-shadow:
-      0 8px 24px hsl(0 75% 45% / 0.25),
-      0 0 20px hsl(0 75% 45% / 0.15);
+      0 8px 32px rgba(255, 80, 80, 0.15),
+      inset 0 1px 0 rgba(255, 80, 80, 0.4),
+      inset 0 0 20px 10px rgba(255, 80, 80, 0.03);
     transform: translateY(-2px) scale(1.02) translateZ(0);
   }
   .spooky-btn-danger:active {
     transform: translateY(1px) scale(0.97) translateZ(0);
+    background: rgba(255, 80, 80, 0.1);
     transition-duration: 0.08s;
   }
 
@@ -318,21 +355,29 @@
 
   /* Smooth icon buttons – glass */
   .icon-btn {
-    @apply w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200;
-    background: hsl(270 40% 15% / 0.3);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid hsl(270 40% 40% / 0.15);
+    @apply w-10 h-10 flex items-center justify-center transition-all duration-200;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 14px;
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
     transform: translateZ(0);
   }
   .icon-btn:hover {
-    background: hsl(270 40% 20% / 0.45);
-    border-color: hsl(280 60% 55% / 0.3);
-    box-shadow: 0 4px 16px hsl(280 75% 55% / 0.15);
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.45),
+      inset 0 0 15px 5px rgba(255, 255, 255, 0.02);
     transform: translateY(-1px) scale(1.05) translateZ(0);
   }
   .icon-btn:active {
     transform: scale(0.92) translateZ(0);
+    background: rgba(255, 255, 255, 0.06);
     transition-duration: 0.05s;
   }
 }
