@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
           if (settings.total_rounds !== undefined) roomData.total_rounds = Math.min(Math.max(Number(settings.total_rounds), 1), 10);
           if (settings.voting_time !== undefined) roomData.voting_time = Math.min(Math.max(Number(settings.voting_time), 15), 120);
           if (settings.discussion_time !== undefined) roomData.discussion_time = Math.min(Math.max(Number(settings.discussion_time), 30), 300);
+          if (settings.reveal_time !== undefined) roomData.reveal_time = Math.min(Math.max(Number(settings.reveal_time), 5), 30);
         }
 
         const { data: room, error: roomErr } = await supabase
