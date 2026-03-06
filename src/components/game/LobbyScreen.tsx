@@ -278,6 +278,12 @@ export function LobbyScreen() {
                   onChange={(v) => handleSettingChange('voting_time', v)}
                   min={15} max={120} step={5} suffix="s"
                 />
+                <SettingControl
+                  label={t('lobby.revealTime', language)}
+                  value={room.reveal_time}
+                  onChange={(v) => handleSettingChange('reveal_time', v)}
+                  min={5} max={30} step={5} suffix="s"
+                />
                 <div className="border-t border-border my-2" />
               </>
             )}
