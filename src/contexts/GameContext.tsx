@@ -75,7 +75,7 @@ export function useGame() {
 const INITIAL_STATE: GameState = {
   sessionId: getSessionId(),
   nickname: getNickname(),
-  language: 'EN',
+  language: 'KU_CENTRAL',
   room: null,
   players: [],
   reveal: null,

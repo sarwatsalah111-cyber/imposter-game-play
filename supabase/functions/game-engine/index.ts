@@ -90,6 +90,7 @@ Deno.serve(async (req) => {
         if (settings.discussion_time !== undefined) updates.discussion_time = Math.min(Math.max(Number(settings.discussion_time), 30), 300);
         if (settings.max_players !== undefined) updates.max_players = Math.min(Math.max(Number(settings.max_players), 3), 22);
         if (settings.min_players !== undefined) updates.min_players = Math.min(Math.max(Number(settings.min_players), 3), 22);
+        if (settings.reveal_time !== undefined) updates.reveal_time = Math.min(Math.max(Number(settings.reveal_time), 5), 30);
 
         const { error: updateErr } = await supabase.from('rooms').update(updates).eq('id', room_id);
         if (updateErr) return json({ error: updateErr.message }, 500);
