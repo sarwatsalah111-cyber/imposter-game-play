@@ -1,0 +1,1 @@
+ALTER TABLE public.rooms ALTER COLUMN reveal_time SET DEFAULT 10;
