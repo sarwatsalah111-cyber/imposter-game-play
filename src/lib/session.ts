@@ -28,9 +28,9 @@ export interface DefaultGameSettings {
 }
 
 const DEFAULT_SETTINGS: DefaultGameSettings = {
-  max_players: 8,
-  total_rounds: 3,
-  voting_time: 45,
+  max_players: 12,
+  total_rounds: 2,
+  voting_time: 30,
   discussion_time: 90,
 };
 
