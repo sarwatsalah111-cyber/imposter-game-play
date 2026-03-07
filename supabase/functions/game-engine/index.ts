@@ -764,6 +764,40 @@ Deno.serve(async (req) => {
         return json({ success: true });
       }
 
+      case 'shuffle-players': {
+        const { session_id, room_id } = params;
+        if (!session_id || !room_id) return json({ error: 'Missing fields' }, 400);
+
+        const { data: room } = await supabase
+          .from('rooms').select('host_session_id, phase').eq('id', room_id).single();
+        if (!room) return json({ error: 'Room not found' }, 404);
+        if (room.host_session_id !== session_id) return json({ error: 'Only host' }, 403);
+        if (room.phase !== 'lobby') return json({ error: 'Can only shuffle in lobby' }, 400);
+
+        const { data: players } = await supabase
+          .from('room_players').select('id, session_id')
+          .eq('room_id', room_id).order('joined_at');
+        if (!players || players.length === 0) return json({ error: 'No players' }, 400);
+
+        // Fisher-Yates shuffle then assign new sequential joined_at timestamps
+        const shuffled = [...players];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        const baseTime = new Date('2020-01-01T00:00:00Z');
+        for (let i = 0; i < shuffled.length; i++) {
+          const newTime = new Date(baseTime.getTime() + i * 1000).toISOString();
+          await supabase.from('room_players').update({ joined_at: newTime }).eq('id', shuffled[i].id);
+        }
+
+        // Touch room to trigger realtime update
+        await supabase.from('rooms').update({ updated_at: new Date().toISOString() }).eq('id', room_id);
+
+        return json({ success: true });
+      }
+
       default:
         return json({ error: 'Unknown action' }, 400);
     }
