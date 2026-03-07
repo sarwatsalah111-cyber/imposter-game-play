@@ -110,5 +110,8 @@ export function useGameEngine() {
 
     recoverStart: (session_id: string, room_id: string) =>
       callEngine<{ success: boolean }>('recover-start', { session_id, room_id }),
+
+    shufflePlayers: (session_id: string, room_id: string) =>
+      callEngine<{ success: boolean }>('shuffle-players', { session_id, room_id }),
   };
 }

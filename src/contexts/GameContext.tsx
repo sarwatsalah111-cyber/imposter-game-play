@@ -62,6 +62,7 @@ interface GameActions {
   goHome: () => void;
   retryConnection: () => void;
   recoverStart: () => Promise<void>;
+  shufflePlayers: () => Promise<void>;
 }
 
 const GameContext = createContext<(GameState & GameActions) | null>(null);
@@ -582,6 +583,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       try {
         await engine.recoverStart(state.sessionId, state.room.id);
         update({ error: null });
+      } catch (e: unknown) {
+        update({ error: (e as Error).message });
+      }
+    },
+    shufflePlayers: async () => {
+      if (!state.room) return;
+      try {
+        await engine.shufflePlayers(state.sessionId, state.room.id);
+        await fetchPlayers(state.room.id);
       } catch (e: unknown) {
         update({ error: (e as Error).message });
       }
