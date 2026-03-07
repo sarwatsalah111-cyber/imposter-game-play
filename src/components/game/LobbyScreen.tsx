@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, UserX, AlertTriangle, RefreshCw, X } from 'lucide-react';
+import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, UserX, AlertTriangle, RefreshCw, X, Shuffle } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
 
@@ -57,7 +57,7 @@ function ToggleSetting({ label, icon: Icon, enabled, onToggle }: {
 }
 
 export function LobbyScreen() {
-  const { room, players, isHost, language, sessionId, startGame, updateSettings, leaveRoom, kickPlayer, loading, error, clearError, retryConnection, recoverStart } = useGame();
+  const { room, players, isHost, language, sessionId, startGame, updateSettings, leaveRoom, kickPlayer, shufflePlayers, loading, error, clearError, retryConnection, recoverStart } = useGame();
   const [copied, setCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
@@ -328,9 +328,20 @@ export function LobbyScreen() {
 
         {/* Players */}
         <div className="flex-1 spooky-panel p-4 scratched-texture">
-          <p className="text-muted-foreground text-xs uppercase tracking-widest mb-3 font-display">
-            {t('lobby.players', language)} ({onlinePlayers.length}/{room.max_players})
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-muted-foreground text-xs uppercase tracking-widest font-display">
+              {t('lobby.players', language)} ({onlinePlayers.length}/{room.max_players})
+            </p>
+            {isHost && players.length > 1 && (
+              <button
+                onClick={() => { playClick(); shufflePlayers(); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg spooky-inner border border-accent/40 text-accent hover:bg-accent/10 transition-all text-xs font-display font-bold uppercase tracking-wider"
+              >
+                <Shuffle className="w-3.5 h-3.5" />
+                Shuffle
+              </button>
+            )}
+          </div>
           <div className="space-y-2">
             {players.map((player, i) => (
               <motion.div
