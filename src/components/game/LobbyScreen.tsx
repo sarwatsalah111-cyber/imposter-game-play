@@ -332,10 +332,11 @@ export function LobbyScreen() {
             <p className="text-muted-foreground text-xs uppercase tracking-widest font-display">
               {t('lobby.players', language)} ({onlinePlayers.length}/{room.max_players})
             </p>
-            {isHost && players.length > 1 && (
+            {isHost && (
               <button
                 onClick={() => { playClick(); shufflePlayers(); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg spooky-inner border border-accent/40 text-accent hover:bg-accent/10 transition-all text-xs font-display font-bold uppercase tracking-wider"
+                disabled={players.length < 2}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg spooky-inner border border-accent/40 text-accent hover:bg-accent/10 transition-all text-xs font-display font-bold uppercase tracking-wider disabled:opacity-40 disabled:pointer-events-none"
               >
                 <Shuffle className="w-3.5 h-3.5" />
                 Shuffle
