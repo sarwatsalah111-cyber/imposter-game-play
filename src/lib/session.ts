@@ -23,13 +23,15 @@ export interface RoomContext {
 export interface DefaultGameSettings {
   max_players: number;
   total_rounds: number;
+  spoke_rounds: number;
   voting_time: number;
   discussion_time: number;
 }
 
 const DEFAULT_SETTINGS: DefaultGameSettings = {
   max_players: 12,
-  total_rounds: 2,
+  total_rounds: 5,
+  spoke_rounds: 2,
   voting_time: 30,
   discussion_time: 90,
 };
