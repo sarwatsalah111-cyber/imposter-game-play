@@ -273,6 +273,12 @@ export function LobbyScreen() {
                   min={1} max={10}
                 />
                 <SettingControl
+                  label={t('lobby.spokeRounds', language)}
+                  value={(room as any).spoke_rounds ?? 2}
+                  onChange={(v) => handleSettingChange('spoke_rounds', v)}
+                  min={1} max={5}
+                />
+                <SettingControl
                   label={t('lobby.votingTime', language)}
                   value={room.voting_time}
                   onChange={(v) => handleSettingChange('voting_time', v)}
@@ -317,6 +323,7 @@ export function LobbyScreen() {
           {[
             { label: t('lobby.maxPlayers', language), value: room.max_players },
             { label: t('lobby.rounds', language), value: room.total_rounds },
+            { label: t('lobby.spokeRounds', language), value: (room as any).spoke_rounds ?? 2 },
             { label: t('lobby.votingTime', language), value: `${room.voting_time}s` },
           ].map((s, i) => (
             <div key={i} className="px-3 py-1.5 rounded-lg spooky-inner border border-border text-xs">
