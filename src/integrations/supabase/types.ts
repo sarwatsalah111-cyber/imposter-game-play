@@ -130,6 +130,7 @@ export type Database = {
           phase: string
           reveal_time: number
           secret_word: string | null
+          spoke_rounds: number
           status: string
           total_rounds: number
           updated_at: string
@@ -151,6 +152,7 @@ export type Database = {
           phase?: string
           reveal_time?: number
           secret_word?: string | null
+          spoke_rounds?: number
           status?: string
           total_rounds?: number
           updated_at?: string
@@ -172,6 +174,7 @@ export type Database = {
           phase?: string
           reveal_time?: number
           secret_word?: string | null
+          spoke_rounds?: number
           status?: string
           total_rounds?: number
           updated_at?: string

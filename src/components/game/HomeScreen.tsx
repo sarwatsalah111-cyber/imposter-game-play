@@ -166,7 +166,7 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
   };
 
   const handleReset = () => {
-    const defaults: DefaultGameSettings = { max_players: 8, total_rounds: 3, voting_time: 45, discussion_time: 90 };
+    const defaults: DefaultGameSettings = { max_players: 12, total_rounds: 5, spoke_rounds: 2, voting_time: 30, discussion_time: 90 };
     setSettings(defaults);
     playClick();
   };
@@ -208,6 +208,12 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
             value={settings.total_rounds}
             onChange={v => updateSetting('total_rounds', v)}
             min={1} max={10}
+          />
+          <SettingRow
+            label={t('lobby.spokeRounds', language)}
+            value={settings.spoke_rounds}
+            onChange={v => updateSetting('spoke_rounds', v)}
+            min={1} max={5}
           />
           <SettingRow
             label={t('lobby.votingTime', language)}

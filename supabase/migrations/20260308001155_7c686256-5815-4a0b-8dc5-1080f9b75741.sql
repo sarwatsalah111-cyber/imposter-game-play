@@ -1,0 +1,1 @@
+ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS spoke_rounds integer NOT NULL DEFAULT 2;

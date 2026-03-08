@@ -8,6 +8,7 @@ export interface Room {
   min_players: number;
   max_players: number;
   total_rounds: number;
+  spoke_rounds: number;
   current_round: number;
   reveal_time: number;
   discussion_time: number;

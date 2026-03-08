@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
           if (settings.voting_time !== undefined) roomData.voting_time = Math.min(Math.max(Number(settings.voting_time), 15), 120);
           if (settings.discussion_time !== undefined) roomData.discussion_time = Math.min(Math.max(Number(settings.discussion_time), 30), 300);
           if (settings.reveal_time !== undefined) roomData.reveal_time = Math.min(Math.max(Number(settings.reveal_time), 5), 30);
+          if (settings.spoke_rounds !== undefined) roomData.spoke_rounds = Math.min(Math.max(Number(settings.spoke_rounds), 1), 5);
         }
 
         const { data: room, error: roomErr } = await supabase
@@ -92,6 +93,7 @@ Deno.serve(async (req) => {
         if (settings.max_players !== undefined) updates.max_players = Math.min(Math.max(Number(settings.max_players), 3), 22);
         if (settings.min_players !== undefined) updates.min_players = Math.min(Math.max(Number(settings.min_players), 3), 22);
         if (settings.reveal_time !== undefined) updates.reveal_time = Math.min(Math.max(Number(settings.reveal_time), 5), 30);
+        if (settings.spoke_rounds !== undefined) updates.spoke_rounds = Math.min(Math.max(Number(settings.spoke_rounds), 1), 5);
 
         const { error: updateErr } = await supabase.from('rooms').update(updates).eq('id', room_id);
         if (updateErr) return json({ error: updateErr.message }, 500);
@@ -301,7 +303,7 @@ Deno.serve(async (req) => {
       case 'mark-spoke': {
         const { session_id, room_id } = params;
         const { data: room } = await supabase
-          .from('rooms').select('phase, current_round, total_rounds, host_session_id').eq('id', room_id).single();
+          .from('rooms').select('phase, current_round, total_rounds, spoke_rounds, host_session_id').eq('id', room_id).single();
         if (!room || room.phase !== 'discussion') return json({ error: 'Not in discussion phase' }, 400);
 
         // Rate limit
@@ -323,8 +325,9 @@ Deno.serve(async (req) => {
           return d && d.game_round === room.current_round;
         });
 
+        const spokeRounds = room.spoke_rounds || room.total_rounds;
         const myTurnCount = roundSpokeEvents.filter(e => e.session_id === session_id).length;
-        if (myTurnCount >= room.total_rounds) {
+        if (myTurnCount >= spokeRounds) {
           return json({ error: 'You have used all your speaking turns' }, 400);
         }
 
@@ -335,7 +338,7 @@ Deno.serve(async (req) => {
         if (!activePlayers || activePlayers.length === 0) return json({ error: 'No active players' }, 400);
 
         const playerOrder = activePlayers.map(p => p.session_id);
-        const totalTurns = playerOrder.length * room.total_rounds;
+        const totalTurns = playerOrder.length * spokeRounds;
         const currentTurnIndex = roundSpokeEvents.length;
 
         const expectedPlayer = playerOrder[currentTurnIndex % playerOrder.length];
@@ -368,7 +371,7 @@ Deno.serve(async (req) => {
       case 'get-spoke-status': {
         const { room_id } = params;
         const { data: room } = await supabase
-          .from('rooms').select('current_round, total_rounds').eq('id', room_id).single();
+          .from('rooms').select('current_round, total_rounds, spoke_rounds').eq('id', room_id).single();
         if (!room) return json({ error: 'Room not found' }, 404);
 
         const { data: events } = await supabase
@@ -385,8 +388,9 @@ Deno.serve(async (req) => {
           .eq('room_id', room_id).eq('is_online', true).eq('is_eliminated', false)
           .order('joined_at');
 
+        const spokeRounds = room.spoke_rounds || room.total_rounds;
         const playerOrder = (activePlayers || []).map(p => p.session_id);
-        const totalTurns = playerOrder.length * room.total_rounds;
+        const totalTurns = playerOrder.length * spokeRounds;
         const currentTurnIndex = roundEvents.length;
         const currentTurnPlayer = currentTurnIndex < totalTurns ? playerOrder[currentTurnIndex % playerOrder.length] : null;
 
@@ -404,7 +408,7 @@ Deno.serve(async (req) => {
           current_turn_index: currentTurnIndex,
           current_turn_player: currentTurnPlayer,
           total_turns: totalTurns,
-          total_rounds: room.total_rounds,
+          total_rounds: spokeRounds,
         });
       }
 
