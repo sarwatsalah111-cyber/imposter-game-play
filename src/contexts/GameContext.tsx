@@ -67,10 +67,37 @@ interface GameActions {
 
 const GameContext = createContext<(GameState & GameActions) | null>(null);
 
+const FALLBACK_ACTIONS: GameActions = {
+  setNickname: () => {},
+  setLanguage: () => {},
+  createRoom: async () => {},
+  joinRoom: async () => {},
+  updateSettings: async () => {},
+  startGame: async () => {},
+  advancePhase: async () => {},
+  markSpoke: async () => {},
+  vote: async () => {},
+  kickPlayer: async () => {},
+  leaveRoom: async () => {},
+  finishGame: async () => {},
+  playAgain: async () => {},
+  imposterGuess: async () => ({ correct: false }),
+  resetScores: async () => {},
+  clearError: () => {},
+  goHome: () => {},
+  retryConnection: () => {},
+  recoverStart: async () => {},
+  shufflePlayers: async () => {},
+};
+
 export function useGame() {
   const ctx = useContext(GameContext);
-  if (!ctx) throw new Error('useGame must be within GameProvider');
-  return ctx;
+  if (ctx) return ctx;
+  return {
+    ...INITIAL_STATE,
+    ...FALLBACK_ACTIONS,
+    error: 'Context unavailable. Please refresh.',
+  };
 }
 
 const INITIAL_STATE: GameState = {
