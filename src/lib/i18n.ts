@@ -444,6 +444,7 @@ const translations: Record<Language, Record<string, string>> = {
     'lobby.discussionTime': 'Dema Nîqaşê',
     'lobby.votingTime': 'Dema Dengdanê',
     'lobby.maxPlayers': 'Herî zêde Lîstikvan',
+    'lobby.spokeRounds': 'Dorên Axaftinê',
     'game.reveal': 'Rola Te',
     'game.youAreImposter': 'Tu SEXTEKAR î!',
     'game.youAreNormal': 'Tu lîstikvanekî asayî yî',
