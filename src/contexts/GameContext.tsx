@@ -552,7 +552,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         max_players: state.room.max_players,
         min_players: state.room.min_players,
         total_rounds: state.room.total_rounds,
-        spoke_rounds: (state.room as any).spoke_rounds ?? 2,
+        spoke_rounds: state.room.spoke_rounds ?? 2,
         voting_time: state.room.voting_time,
         discussion_time: state.room.discussion_time,
       };
