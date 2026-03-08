@@ -286,7 +286,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             const updated = { ...prev.room };
             const syncKeys = [
               'phase', 'status', 'host_session_id', 'current_round', 'updated_at', 'closed_at',
-              'language', 'discussion_time', 'voting_time', 'reveal_time', 'total_rounds',
+              'language', 'discussion_time', 'voting_time', 'reveal_time', 'total_rounds', 'spoke_rounds',
               'max_players', 'min_players',
             ];
             syncKeys.forEach(k => {
@@ -552,6 +552,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         max_players: state.room.max_players,
         min_players: state.room.min_players,
         total_rounds: state.room.total_rounds,
+        spoke_rounds: (state.room as any).spoke_rounds ?? 2,
         voting_time: state.room.voting_time,
         discussion_time: state.room.discussion_time,
       };
