@@ -382,7 +382,7 @@ export function LobbyScreen() {
               }}
             />
             <ToggleSetting
-              label="Vibration"
+              label={t('settings.vibration', language)}
               icon={Vibrate}
               enabled={vibrationOn}
               onToggle={() => {
