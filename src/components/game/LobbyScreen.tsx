@@ -339,6 +339,33 @@ export function LobbyScreen() {
                   onChange={(v) => handleSettingChange('reveal_time', v)}
                   min={5} max={30} step={5} suffix="s"
                 />
+                {/* Category selection */}
+                <div className="border-t border-border my-2 pt-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tag className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">{t('lobby.categories', language)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground/60 mb-2">{t('lobby.categoriesHint', language)}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {availableCategories.map(cat => {
+                      const isSelected = selectedCategories.length === 0 || selectedCategories.includes(cat);
+                      const catKey = `wordbank.cat.${cat}` as string;
+                      return (
+                        <button
+                          key={cat}
+                          onClick={() => { playClick(); toggleCategory(cat); }}
+                          className={`px-2.5 py-1 rounded-md text-xs font-display font-bold uppercase tracking-wider transition-all ${
+                            isSelected
+                              ? 'bg-accent/20 border border-accent/50 text-accent'
+                              : 'spooky-inner border border-border text-muted-foreground/50'
+                          }`}
+                        >
+                          {t(catKey, language)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 <div className="border-t border-border my-2" />
               </>
             )}
