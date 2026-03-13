@@ -112,6 +112,23 @@ export function LobbyScreen() {
     };
   }, [room?.status]);
 
+  // Fetch available categories
+  useEffect(() => {
+    supabase.from('word_bank').select('category').eq('is_active', true).then(({ data }) => {
+      if (data) {
+        const cats = [...new Set(data.map(w => w.category))].sort();
+        setAvailableCategories(cats);
+      }
+    });
+  }, []);
+
+  // Sync selected categories from room
+  useEffect(() => {
+    if ((room as any)?.categories) {
+      setSelectedCategories((room as any).categories);
+    }
+  }, [(room as any)?.categories]);
+
   // Flush pending settings on unmount
   useEffect(() => {
     return () => {
@@ -126,6 +143,26 @@ export function LobbyScreen() {
     navigator.clipboard.writeText(room.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const shareLink = () => {
+    const url = `${window.location.origin}/?join=${room.code}`;
+    if (navigator.share) {
+      navigator.share({ title: 'Join my game!', url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+    playClick();
+  };
+
+  const toggleCategory = (cat: string) => {
+    const next = selectedCategories.includes(cat)
+      ? selectedCategories.filter(c => c !== cat)
+      : [...selectedCategories, cat];
+    setSelectedCategories(next);
+    handleSettingChange('categories', next.length > 0 ? next : null as any);
   };
 
   const onlinePlayers = players.filter(p => p.is_online);
