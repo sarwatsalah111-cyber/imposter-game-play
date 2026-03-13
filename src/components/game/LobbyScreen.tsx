@@ -268,18 +268,27 @@ export function LobbyScreen() {
           className="spooky-panel spider-corner p-4 text-center mb-4"
         >
           <p className="text-muted-foreground text-xs mb-1 uppercase tracking-widest font-display">{t('lobby.code', language)}</p>
-          <button
-            onClick={() => { playClick(); copyCode(); }}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-lg spooky-inner border border-border hover:border-accent/40 transition-all"
-          >
-            <span className="font-display text-3xl font-bold text-accent tracking-[0.3em] text-glow-gold">
-              {room.code}
-            </span>
-            <Copy className="w-4 h-4 text-muted-foreground" />
-          </button>
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={() => { playClick(); copyCode(); }}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg spooky-inner border border-border hover:border-accent/40 transition-all"
+            >
+              <span className="font-display text-3xl font-bold text-accent tracking-[0.3em] text-glow-gold">
+                {room.code}
+              </span>
+              <Copy className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <button
+              onClick={shareLink}
+              className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-accent hover:border-accent/40 transition-colors"
+              title={t('lobby.share', language)}
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+          </div>
           {copied && (
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-accent text-xs mt-1 font-display">
-              Copied!
+              {t('lobby.copied', language)}
             </motion.p>
           )}
         </motion.div>
