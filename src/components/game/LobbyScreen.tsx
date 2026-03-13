@@ -372,7 +372,7 @@ export function LobbyScreen() {
 
             {/* Personal settings (everyone) */}
             <ToggleSetting
-              label="Sound Effects"
+              label={t('settings.sound', language)}
               icon={soundOn ? Volume2 : VolumeX}
               enabled={soundOn}
               onToggle={() => {
