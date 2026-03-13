@@ -170,14 +170,16 @@ Deno.serve(async (req) => {
             return json({ error: `Need at least ${room.min_players} players` }, 400);
           }
 
-          // Select word — exclude previous round's word to prevent repeats
+          // Select word — exclude previous round's word, filter by categories if set
           const previousWord = room.secret_word || null;
-          const { data: words } = await supabase
-            .from('word_bank').select('word')
-            .eq('is_active', true);
+          let wordQuery = supabase.from('word_bank').select('word').eq('is_active', true);
+          if (room.categories && Array.isArray(room.categories) && room.categories.length > 0) {
+            wordQuery = wordQuery.in('category', room.categories);
+          }
+          const { data: words } = await wordQuery;
           if (!words || words.length === 0) {
             await supabase.from('rooms').update({ status: 'waiting', updated_at: new Date().toISOString() }).eq('id', room_id);
-            return json({ error: 'No words available for this language. Cannot start.' }, 500);
+            return json({ error: 'No words available for selected categories. Cannot start.' }, 500);
           }
           let availableWords = previousWord ? words.filter(w => w.word !== previousWord) : words;
           if (availableWords.length === 0) availableWords = words;
