@@ -115,6 +115,7 @@ export type Database = {
       }
       rooms: {
         Row: {
+          categories: string[] | null
           closed_at: string | null
           code: string
           created_at: string
@@ -137,6 +138,7 @@ export type Database = {
           voting_time: number
         }
         Insert: {
+          categories?: string[] | null
           closed_at?: string | null
           code: string
           created_at?: string
@@ -159,6 +161,7 @@ export type Database = {
           voting_time?: number
         }
         Update: {
+          categories?: string[] | null
           closed_at?: string | null
           code?: string
           created_at?: string

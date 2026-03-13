@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
           if (settings.discussion_time !== undefined) roomData.discussion_time = Math.min(Math.max(Number(settings.discussion_time), 30), 300);
           if (settings.reveal_time !== undefined) roomData.reveal_time = Math.min(Math.max(Number(settings.reveal_time), 5), 30);
           if (settings.spoke_rounds !== undefined) roomData.spoke_rounds = Math.min(Math.max(Number(settings.spoke_rounds), 1), 5);
+          if (settings.categories !== undefined) roomData.categories = settings.categories;
         }
 
         const { data: room, error: roomErr } = await supabase
@@ -94,6 +95,7 @@ Deno.serve(async (req) => {
         if (settings.min_players !== undefined) updates.min_players = Math.min(Math.max(Number(settings.min_players), 3), 22);
         if (settings.reveal_time !== undefined) updates.reveal_time = Math.min(Math.max(Number(settings.reveal_time), 5), 30);
         if (settings.spoke_rounds !== undefined) updates.spoke_rounds = Math.min(Math.max(Number(settings.spoke_rounds), 1), 5);
+        if (settings.categories !== undefined) updates.categories = settings.categories;
 
         const { error: updateErr } = await supabase.from('rooms').update(updates).eq('id', room_id);
         if (updateErr) return json({ error: updateErr.message }, 500);
@@ -169,14 +171,16 @@ Deno.serve(async (req) => {
             return json({ error: `Need at least ${room.min_players} players` }, 400);
           }
 
-          // Select word — exclude previous round's word to prevent repeats
+          // Select word — exclude previous round's word, filter by categories if set
           const previousWord = room.secret_word || null;
-          const { data: words } = await supabase
-            .from('word_bank').select('word')
-            .eq('is_active', true);
+          let wordQuery = supabase.from('word_bank').select('word').eq('is_active', true);
+          if (room.categories && Array.isArray(room.categories) && room.categories.length > 0) {
+            wordQuery = wordQuery.in('category', room.categories);
+          }
+          const { data: words } = await wordQuery;
           if (!words || words.length === 0) {
             await supabase.from('rooms').update({ status: 'waiting', updated_at: new Date().toISOString() }).eq('id', room_id);
-            return json({ error: 'No words available for this language. Cannot start.' }, 500);
+            return json({ error: 'No words available for selected categories. Cannot start.' }, 500);
           }
           let availableWords = previousWord ? words.filter(w => w.word !== previousWord) : words;
           if (availableWords.length === 0) availableWords = words;

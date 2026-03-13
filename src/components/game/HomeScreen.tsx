@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t, LANGUAGES, type Language } from '@/lib/i18n';
@@ -299,13 +300,23 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
 
 export function HomeScreen() {
   const { nickname, setNickname, language, setLanguage, createRoom, joinRoom, loading, error, clearError } = useGame();
-  const [mode, setMode] = useState<'home' | 'create' | 'join'>('home');
-  const [roomCode, setRoomCode] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const joinCode = searchParams.get('join') || '';
+
+  const [mode, setMode] = useState<'home' | 'create' | 'join'>(joinCode ? 'join' : 'home');
+  const [roomCode, setRoomCode] = useState(joinCode);
   const [showHowTo, setShowHowTo] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showWordBank, setShowWordBank] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
+
+  // Clear URL param after reading
+  useEffect(() => {
+    if (joinCode) {
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
 
   // Start ambient sound on mount, stop on unmount
   useEffect(() => {
