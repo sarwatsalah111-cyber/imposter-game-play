@@ -65,6 +65,8 @@ export function LobbyScreen() {
   const [vibrationOn, setVibrationOn] = useState(isVibrationEnabled());
   const [isStuck, setIsStuck] = useState(false);
   const [startingTimeout, setStartingTimeout] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>((room as any)?.categories || []);
   const mountTimeRef = useRef(Date.now());
   const startingTimerRef = useRef<NodeJS.Timeout>();
 
