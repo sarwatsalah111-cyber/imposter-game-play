@@ -81,7 +81,7 @@ export function LobbyScreen() {
     updateSettings(pending);
   }, [updateSettings]);
 
-  const handleSettingChange = useCallback((key: string, value: number) => {
+  const handleSettingChange = useCallback((key: string, value: unknown) => {
     pendingSettingsRef.current = { ...pendingSettingsRef.current, [key]: value };
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(flushSettings, 400);
