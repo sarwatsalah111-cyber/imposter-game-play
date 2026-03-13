@@ -15,6 +15,7 @@ export interface Room {
   voting_time: number;
   language: string;
   phase: GamePhase;
+  categories: string[] | null;
   created_at: string;
   updated_at: string;
   closed_at: string | null;

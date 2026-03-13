@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
           if (settings.discussion_time !== undefined) roomData.discussion_time = Math.min(Math.max(Number(settings.discussion_time), 30), 300);
           if (settings.reveal_time !== undefined) roomData.reveal_time = Math.min(Math.max(Number(settings.reveal_time), 5), 30);
           if (settings.spoke_rounds !== undefined) roomData.spoke_rounds = Math.min(Math.max(Number(settings.spoke_rounds), 1), 5);
+          if (settings.categories !== undefined) roomData.categories = settings.categories;
         }
 
         const { data: room, error: roomErr } = await supabase
