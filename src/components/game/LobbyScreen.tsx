@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, UserX, AlertTriangle, RefreshCw, X, Shuffle, Share2, Tag } from 'lucide-react';
+import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, UserX, AlertTriangle, RefreshCw, X, Shuffle, Share2 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
 import { supabase } from '@/integrations/supabase/client';
@@ -65,8 +65,6 @@ export function LobbyScreen() {
   const [vibrationOn, setVibrationOn] = useState(isVibrationEnabled());
   const [isStuck, setIsStuck] = useState(false);
   const [startingTimeout, setStartingTimeout] = useState(false);
-  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>((room as any)?.categories || []);
   const mountTimeRef = useRef(Date.now());
   const startingTimerRef = useRef<NodeJS.Timeout>();
 
@@ -112,22 +110,6 @@ export function LobbyScreen() {
     };
   }, [room?.status]);
 
-  // Fetch available categories
-  useEffect(() => {
-    supabase.from('word_bank').select('category').eq('is_active', true).then(({ data }) => {
-      if (data) {
-        const cats = [...new Set(data.map(w => w.category))].sort();
-        setAvailableCategories(cats);
-      }
-    });
-  }, []);
-
-  // Sync selected categories from room
-  useEffect(() => {
-    if ((room as any)?.categories) {
-      setSelectedCategories((room as any).categories);
-    }
-  }, [(room as any)?.categories]);
 
   // Flush pending settings on unmount
   useEffect(() => {
@@ -157,13 +139,6 @@ export function LobbyScreen() {
     playClick();
   };
 
-  const toggleCategory = (cat: string) => {
-    const next = selectedCategories.includes(cat)
-      ? selectedCategories.filter(c => c !== cat)
-      : [...selectedCategories, cat];
-    setSelectedCategories(next);
-    handleSettingChange('categories', next.length > 0 ? next : null as any);
-  };
 
   const onlinePlayers = players.filter(p => p.is_online);
   const canStart = isHost && onlinePlayers.length >= room.min_players;
@@ -339,33 +314,6 @@ export function LobbyScreen() {
                   onChange={(v) => handleSettingChange('reveal_time', v)}
                   min={5} max={30} step={5} suffix="s"
                 />
-                {/* Category selection */}
-                <div className="border-t border-border my-2 pt-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Tag className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">{t('lobby.categories', language)}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground/60 mb-2">{t('lobby.categoriesHint', language)}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {availableCategories.map(cat => {
-                      const isSelected = selectedCategories.length === 0 || selectedCategories.includes(cat);
-                      const catKey = `wordbank.cat.${cat}` as string;
-                      return (
-                        <button
-                          key={cat}
-                          onClick={() => { playClick(); toggleCategory(cat); }}
-                          className={`px-2.5 py-1 rounded-md text-xs font-display font-bold uppercase tracking-wider transition-all ${
-                            isSelected
-                              ? 'bg-accent/20 border border-accent/50 text-accent'
-                              : 'spooky-inner border border-border text-muted-foreground/50'
-                          }`}
-                        >
-                          {t(catKey, language)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
                 <div className="border-t border-border my-2" />
               </>
             )}
