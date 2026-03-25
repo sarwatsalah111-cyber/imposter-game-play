@@ -281,19 +281,29 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
               <button
                 key={font.key}
                 onClick={() => { playClick(); setSoraniFontState(font.key); }}
-                className={`py-2 px-2 rounded-lg border text-xs transition-all ${
+                className={`group relative py-2 px-2 rounded-lg border text-xs transition-all ${
                   soraniFont === font.key
                     ? 'border-primary bg-primary/15 text-foreground'
                     : 'border-border spooky-inner text-muted-foreground hover:border-primary/40'
                 }`}
               >
                 <span className={`font-sorani-${font.key}`}>{font.label}</span>
+                {/* Hover preview tooltip */}
+                <div className={`pointer-events-none absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 p-3 rounded-xl border border-primary/30 bg-card shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 font-sorani-${font.key}`}>
+                  <p className="text-base text-accent leading-relaxed text-center" dir="rtl">
+                    جاسوسەکەی نێوانتان بدۆزەوە، یان هەمویان هەڵبخەڵەتێنە
+                  </p>
+                  <p className="text-[10px] text-muted-foreground text-center mt-1">{font.label}</p>
+                </div>
               </button>
             ))}
           </div>
-          <p className={`text-center text-lg mt-2 text-accent font-sorani-${soraniFont}`}>
-            فێڵباز — نموونە
-          </p>
+          {/* Selected font live preview */}
+          <div className={`mt-3 p-3 rounded-xl spooky-inner border border-border font-sorani-${soraniFont}`} dir="rtl">
+            <p className="text-lg text-accent text-center leading-relaxed">فێڵباز — نموونە</p>
+            <p className="text-sm text-foreground/80 text-center mt-1 leading-relaxed">جاسوسەکەی نێوانتان بدۆزەوە، یان هەمویان هەڵبخەڵەتێنە</p>
+            <p className="text-xs text-muted-foreground text-center mt-1">١ ٢ ٣ ٤ ٥ ٦ ٧ ٨ ٩ ٠ — ئابجد</p>
+          </div>
           <button onClick={handleReset} className="flex-1 py-2.5 spooky-btn text-xs">
             {t('settings.reset', language)}
           </button>
