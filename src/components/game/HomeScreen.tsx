@@ -265,25 +265,33 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
               {t('settings.soraniFont', language)}
             </span>
           </div>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {([
-              { key: 'peshang' as SoraniFont, label: 'Peshang', sampleClass: 'font-sorani-peshang' },
-              { key: 'zana' as SoraniFont, label: 'UniQaidar Zana', sampleClass: 'font-sorani-zana' },
+              { key: 'peshang' as SoraniFont, label: 'Peshang Des' },
+              { key: 'zana' as SoraniFont, label: 'UniQaidar Zana' },
+              { key: 'k24' as SoraniFont, label: 'K24 Kurdish' },
+              { key: 'kobane' as SoraniFont, label: 'Nizar Kobane' },
+              { key: 'peshmerge' as SoraniFont, label: 'Nizar Peshmerge' },
+              { key: 'rabar017' as SoraniFont, label: 'Rabar 017' },
+              { key: 'rabar018' as SoraniFont, label: 'Rabar 018' },
+              { key: 'rabar026' as SoraniFont, label: 'Rabar 026' },
+              { key: 'rabar032' as SoraniFont, label: 'Rabar 032' },
+              { key: 'mahansaria' as SoraniFont, label: 'Mahan Saria' },
             ]).map(font => (
               <button
                 key={font.key}
                 onClick={() => { playClick(); setSoraniFontState(font.key); }}
-                className={`flex-1 py-2.5 px-3 rounded-lg border text-sm transition-all ${
+                className={`py-2 px-2 rounded-lg border text-xs transition-all ${
                   soraniFont === font.key
                     ? 'border-primary bg-primary/15 text-foreground'
                     : 'border-border spooky-inner text-muted-foreground hover:border-primary/40'
                 }`}
               >
-                <span className={font.sampleClass}>{font.label}</span>
+                <span className={`font-sorani-${font.key}`}>{font.label}</span>
               </button>
             ))}
           </div>
-          <p className={`text-center text-lg mt-2 text-accent ${soraniFont === 'peshang' ? 'font-sorani-peshang' : 'font-sorani-zana'}`}>
+          <p className={`text-center text-lg mt-2 text-accent font-sorani-${soraniFont}`}>
             فێڵباز — نموونە
           </p>
           <button onClick={handleReset} className="flex-1 py-2.5 spooky-btn text-xs">
