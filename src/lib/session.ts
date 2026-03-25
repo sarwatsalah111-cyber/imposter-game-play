@@ -4,7 +4,7 @@ const SETTINGS_KEY = 'imposter_default_settings';
 const ROOM_CONTEXT_KEY = 'imposter_room_context';
 const SORANI_FONT_KEY = 'imposter_sorani_font';
 
-export type SoraniFont = 'peshang' | 'zana';
+export type SoraniFont = 'peshang' | 'zana' | 'k24' | 'kobane' | 'peshmerge' | 'rabar017' | 'rabar018' | 'rabar026' | 'rabar032' | 'mahansaria';
 
 export function getSoraniFont(): SoraniFont {
   return (localStorage.getItem(SORANI_FONT_KEY) as SoraniFont) || 'zana';

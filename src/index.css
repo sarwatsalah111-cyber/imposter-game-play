@@ -2,7 +2,7 @@
 
 @font-face {
   font-family: 'PeshangDes';
-  src: url('/fonts/Peshang_Des_1_bold.ttf') format('truetype');
+  src: url('/fonts/PeshangDes1Bold.ttf') format('truetype');
   font-weight: bold;
   font-style: normal;
   font-display: swap;
@@ -11,6 +11,70 @@
 @font-face {
   font-family: 'UniQaidarZana';
   src: url('/fonts/UniQAIDAR_ZANA.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'K24KurdishBold';
+  src: url('/fonts/K24KurdishBold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'NizarKobane';
+  src: url('/fonts/Nizar-Kobane.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'NizarPeshmerge';
+  src: url('/fonts/NizarPeshmerge.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rabar017';
+  src: url('/fonts/Rabar017.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rabar018';
+  src: url('/fonts/Rabar018.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rabar026';
+  src: url('/fonts/Rabar026.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rabar032';
+  src: url('/fonts/Rabar032.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'UniMahanSaria';
+  src: url('/fonts/UniMahanSaria.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -391,6 +455,46 @@
 .font-sorani-zana,
 .font-sorani-zana * {
   font-family: 'UniQaidarZana', sans-serif !important;
+}
+
+.font-sorani-k24,
+.font-sorani-k24 * {
+  font-family: 'K24KurdishBold', sans-serif !important;
+}
+
+.font-sorani-kobane,
+.font-sorani-kobane * {
+  font-family: 'NizarKobane', sans-serif !important;
+}
+
+.font-sorani-peshmerge,
+.font-sorani-peshmerge * {
+  font-family: 'NizarPeshmerge', sans-serif !important;
+}
+
+.font-sorani-rabar017,
+.font-sorani-rabar017 * {
+  font-family: 'Rabar017', sans-serif !important;
+}
+
+.font-sorani-rabar018,
+.font-sorani-rabar018 * {
+  font-family: 'Rabar018', sans-serif !important;
+}
+
+.font-sorani-rabar026,
+.font-sorani-rabar026 * {
+  font-family: 'Rabar026', sans-serif !important;
+}
+
+.font-sorani-rabar032,
+.font-sorani-rabar032 * {
+  font-family: 'Rabar032', sans-serif !important;
+}
+
+.font-sorani-mahansaria,
+.font-sorani-mahansaria * {
+  font-family: 'UniMahanSaria', sans-serif !important;
 }
 
 /* Default alias for backwards compat */
