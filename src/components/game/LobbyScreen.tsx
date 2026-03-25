@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, UserX, AlertTriangle, RefreshCw, X, Shuffle, Share2, Tag } from 'lucide-react';
+import { Copy, Crown, LogOut, Play, User, Wifi, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, UserX, AlertTriangle, RefreshCw, X, Shuffle, Share2 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
 import { supabase } from '@/integrations/supabase/client';
