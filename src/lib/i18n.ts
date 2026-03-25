@@ -389,7 +389,7 @@ const translations: Record<Language, Record<string, string>> = {
     'game.waitingPlayers': '...چاوەڕوانی یاریزانەکان',
     'game.tieRule': 'هاوتایی = دەسکاریکەرەکە دەربازدەبێت',
     'game.pointsAwarded': 'خاڵە دراوەکان',
-    'game.imposterGuessBtn': 'وشەکە بتوانە',
+    'game.imposterGuessBtn': 'وشەکە بخەمڵێنە',
     'game.imposterGuessHint': 'وەک دەسکاریکەر، وشەی نهێنی بتوانە بۆ +3 خاڵ!',
     'game.enterGuess': '...تۆمارەکەت بنووسە',
     'game.submitGuess': 'ناردنی تۆمار',
