@@ -28,6 +28,7 @@ interface GameState {
   loading: boolean;
   results: {
     votes: Record<string, number>;
+    vote_details: Array<{ voter: string; target: string }>;
     imposter_session_id: string;
     secret_word: string;
     caught: boolean;
@@ -53,6 +54,7 @@ interface GameActions {
   markSpoke: () => Promise<void>;
   vote: (targetSessionId: string) => Promise<void>;
   kickPlayer: (targetSessionId: string) => Promise<void>;
+  skipTurn: (targetSessionId: string) => Promise<void>;
   leaveRoom: () => Promise<void>;
   finishGame: () => Promise<void>;
   playAgain: () => Promise<void>;
@@ -78,6 +80,7 @@ const FALLBACK_ACTIONS: GameActions = {
   markSpoke: async () => {},
   vote: async () => {},
   kickPlayer: async () => {},
+  skipTurn: async () => {},
   leaveRoom: async () => {},
   finishGame: async () => {},
   playAgain: async () => {},
