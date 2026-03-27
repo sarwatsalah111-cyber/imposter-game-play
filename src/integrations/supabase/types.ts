@@ -423,6 +423,10 @@ export type Database = {
       }
     }
     Functions: {
+      increment_player_score: {
+        Args: { p_delta: number; p_room_id: string; p_session_id: string }
+        Returns: undefined
+      }
       normalize_word_text: {
         Args: { input_language: string; input_text: string }
         Returns: string
