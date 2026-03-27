@@ -495,8 +495,10 @@ Deno.serve(async (req) => {
           .from('votes').select('*').eq('room_id', room_id).eq('round', room.current_round);
 
         const tally: Record<string, number> = {};
+        const voteDetails: Array<{ voter: string; target: string }> = [];
         (votes || []).forEach(v => {
           tally[v.target_session_id] = (tally[v.target_session_id] || 0) + 1;
+          voteDetails.push({ voter: v.voter_session_id, target: v.target_session_id });
         });
 
         const maxVotes = Math.max(...Object.values(tally), 0);
@@ -511,6 +513,7 @@ Deno.serve(async (req) => {
 
         return json({
           votes: tally,
+          vote_details: voteDetails,
           imposter_session_id: room.imposter_session_id,
           secret_word: room.secret_word,
           caught,
@@ -544,10 +547,23 @@ Deno.serve(async (req) => {
           return json({ error: 'Cannot guess now' }, 400);
         }
 
-        // Normalize and compare
+        // Normalize and compare against primary word AND all translations
         const normalizedGuess = guess.trim().toLowerCase();
         const normalizedWord = (room.secret_word || '').trim().toLowerCase();
-        const correct = normalizedGuess === normalizedWord;
+        let correct = normalizedGuess === normalizedWord;
+
+        // Also check all translations from word_bank
+        if (!correct && room.secret_word) {
+          const { data: wordEntry } = await supabase
+            .from('word_bank').select('translations')
+            .eq('word', room.secret_word).maybeSingle();
+          if (wordEntry?.translations) {
+            const translations = wordEntry.translations as Record<string, string>;
+            correct = Object.values(translations).some(
+              t => t && t.trim().toLowerCase() === normalizedGuess
+            );
+          }
+        }
 
         if (correct) {
           // Award +3 to imposter, skip voting, go to results
@@ -573,22 +589,25 @@ Deno.serve(async (req) => {
               player_id: session_id, delta: 3, reason: 'GUESS_WIN',
             });
 
-            // Update player score
-            const { data: player } = await supabase
-              .from('room_players').select('score')
-              .eq('room_id', room_id).eq('session_id', session_id).single();
-            if (player) {
-              await supabase.from('room_players').update({ score: player.score + 3 })
-                .eq('room_id', room_id).eq('session_id', session_id);
-            }
+            // Update player score atomically
+            await supabase.rpc('increment_player_score', {
+              p_room_id: room_id,
+              p_session_id: session_id,
+              p_delta: 3,
+            });
           }
 
-          // Advance directly to results and close the game
-          await supabase.from('rooms').update({
-            phase: 'results', status: 'closed',
+          // Advance to results — only close if final round
+          const isFinalRound = room.current_round >= room.total_rounds;
+          const roomUpdate: Record<string, unknown> = {
+            phase: 'results',
             updated_at: new Date().toISOString(),
-            closed_at: new Date().toISOString(),
-          }).eq('id', room_id);
+          };
+          if (isFinalRound) {
+            roomUpdate.status = 'closed';
+            roomUpdate.closed_at = new Date().toISOString();
+          }
+          await supabase.from('rooms').update(roomUpdate).eq('id', room_id);
 
           await supabase.from('room_events').insert({
             room_id, event_type: 'phase_changed', session_id,
@@ -806,6 +825,62 @@ Deno.serve(async (req) => {
         return json({ success: true });
       }
 
+      // ─── Skip Turn (host skips offline player) ───
+      case 'skip-turn': {
+        const { session_id, room_id, target_session_id } = params;
+        if (!session_id || !room_id || !target_session_id) return json({ error: 'Missing fields' }, 400);
+
+        const { data: room } = await supabase
+          .from('rooms').select('phase, current_round, spoke_rounds, host_session_id').eq('id', room_id).single();
+        if (!room) return json({ error: 'Room not found' }, 404);
+        if (room.host_session_id !== session_id) return json({ error: 'Only host' }, 403);
+        if (room.phase !== 'discussion') return json({ error: 'Not in discussion phase' }, 400);
+
+        // Verify the target is the current speaker
+        const { data: allSpokeEvents } = await supabase
+          .from('room_events').select('session_id, data')
+          .eq('room_id', room_id).eq('event_type', 'spoke');
+        const roundSpokeEvents = (allSpokeEvents || []).filter(e => {
+          const d = e.data as Record<string, unknown> | null;
+          return d && d.game_round === room.current_round;
+        });
+
+        const { data: activePlayers } = await supabase
+          .from('room_players').select('session_id')
+          .eq('room_id', room_id).eq('is_eliminated', false)
+          .order('joined_at');
+        const playerOrder = (activePlayers || []).map(p => p.session_id);
+        const spokeRounds = room.spoke_rounds || 2;
+        const totalTurns = playerOrder.length * spokeRounds;
+        const currentTurnIndex = roundSpokeEvents.length;
+
+        const expectedPlayer = playerOrder[currentTurnIndex % playerOrder.length];
+        if (target_session_id !== expectedPlayer) {
+          return json({ error: 'This player is not the current speaker' }, 400);
+        }
+
+        const turnNumber = Math.floor(currentTurnIndex / playerOrder.length) + 1;
+
+        // Insert a spoke event on behalf of the skipped player
+        await supabase.from('room_events').insert({
+          room_id, event_type: 'spoke', session_id: target_session_id,
+          data: { game_round: room.current_round, turn: turnNumber, turn_index: currentTurnIndex, skipped_by_host: true },
+        });
+
+        const newTotalSpoken = currentTurnIndex + 1;
+        if (newTotalSpoken >= totalTurns) {
+          await supabase.from('rooms').update({
+            phase: 'voting', updated_at: new Date().toISOString(),
+          }).eq('id', room_id);
+          await supabase.from('room_events').insert({
+            room_id, event_type: 'phase_changed', session_id,
+            data: { from: 'discussion', to: 'voting', auto: true },
+          });
+        }
+
+        return json({ success: true, skipped: target_session_id, auto_advanced: newTotalSpoken >= totalTurns });
+      }
+
       default:
         return json({ error: 'Unknown action' }, 400);
     }
@@ -895,14 +970,12 @@ async function finalizeRound(
     });
   }
 
-  // Update player scores atomically
+  // Update player scores atomically using RPC
   for (const [playerId, delta] of Object.entries(pointsAwarded)) {
-    const { data: player } = await supabase
-      .from('room_players').select('score')
-      .eq('room_id', roomId).eq('session_id', playerId).single();
-    if (player) {
-      await supabase.from('room_players').update({ score: player.score + delta })
-        .eq('room_id', roomId).eq('session_id', playerId);
-    }
+    await supabase.rpc('increment_player_score', {
+      p_room_id: roomId,
+      p_session_id: playerId,
+      p_delta: delta,
+    });
   }
 }

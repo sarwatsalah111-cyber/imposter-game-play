@@ -28,6 +28,7 @@ interface GameState {
   loading: boolean;
   results: {
     votes: Record<string, number>;
+    vote_details: Array<{ voter: string; target: string }>;
     imposter_session_id: string;
     secret_word: string;
     caught: boolean;
@@ -53,6 +54,7 @@ interface GameActions {
   markSpoke: () => Promise<void>;
   vote: (targetSessionId: string) => Promise<void>;
   kickPlayer: (targetSessionId: string) => Promise<void>;
+  skipTurn: (targetSessionId: string) => Promise<void>;
   leaveRoom: () => Promise<void>;
   finishGame: () => Promise<void>;
   playAgain: () => Promise<void>;
@@ -78,6 +80,7 @@ const FALLBACK_ACTIONS: GameActions = {
   markSpoke: async () => {},
   vote: async () => {},
   kickPlayer: async () => {},
+  skipTurn: async () => {},
   leaveRoom: async () => {},
   finishGame: async () => {},
   playAgain: async () => {},
@@ -274,7 +277,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             .catch(() => {});
         } else if (phase === 'results') {
           engine.getResults(r.id)
-            .then(results => update({ results }))
+            .then(results => update({ results: { ...results, vote_details: results.vote_details || [] } }))
             .catch(() => {});
         }
       } catch {
@@ -432,7 +435,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (state.phase === 'results' && state.room && !state.results) {
       engine.getResults(state.room.id)
-        .then(results => update({ results }))
+        .then(results => update({ results: { ...results, vote_details: results.vote_details || [] } }))
         .catch(() => {});
     }
   }, [state.phase, state.room?.id]);
@@ -545,6 +548,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         await engine.kickPlayer(state.sessionId, state.room.id, targetSessionId);
       } catch (e: unknown) { update({ error: (e as Error).message }); }
     },
+    skipTurn: async (targetSessionId) => {
+      if (!state.room) return;
+      try {
+        await engine.skipTurn(state.sessionId, state.room.id, targetSessionId);
+        refreshSpokeStatus(state.room.id);
+      } catch (e: unknown) { update({ error: (e as Error).message }); }
+    },
     leaveRoom: async () => {
       if (state.room) { await engine.leaveRoom(state.sessionId, state.room.id).catch(() => {}); }
       update(resetState());
@@ -582,6 +592,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         spoke_rounds: state.room.spoke_rounds ?? 2,
         voting_time: state.room.voting_time,
         discussion_time: state.room.discussion_time,
+        reveal_time: state.room.reveal_time,
       };
       const lang = state.room.language as Language;
       // Reset local state first
