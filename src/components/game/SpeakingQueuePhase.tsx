@@ -2,13 +2,13 @@ import { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { MessageCircle, Vote, ArrowRight, CheckCircle, Mic, MicOff, Loader2 } from 'lucide-react';
+import { MessageCircle, Vote, ArrowRight, CheckCircle, Mic, MicOff, Loader2, SkipForward } from 'lucide-react';
 import { playClick, vibrate } from '@/lib/sounds';
 import { toast } from '@/hooks/use-toast';
 import { ImposterGuessPanel } from './ImposterGuessPanel';
 
 export function SpeakingQueuePhase() {
-  const { room, players, language, sessionId, isHost, advancePhase, markSpoke, spokeStatus } = useGame();
+  const { room, players, language, sessionId, isHost, advancePhase, markSpoke, spokeStatus, skipTurn } = useGame();
   const activePlayers = players.filter(p => p.is_online && !p.is_eliminated);
   const [speaking, setSpeaking] = useState(false);
   const [justSpoke, setJustSpoke] = useState(false);
@@ -201,9 +201,21 @@ export function SpeakingQueuePhase() {
 
           {!isMyTurn && currentTurnPlayer && (() => {
             const cp = activePlayers.find(p => p.session_id === currentTurnPlayer);
+            const isOffline = cp ? !players.find(p => p.session_id === currentTurnPlayer)?.is_online : false;
             return (
-              <div className="w-full py-3 rounded-xl spooky-inner border border-border text-muted-foreground font-display font-medium text-center text-sm uppercase tracking-wider">
-                {cp ? `${cp.nickname} ${t('game.isSpeaking', language)}...` : t('game.waitingTurn', language)}
+              <div className="space-y-2">
+                <div className="w-full py-3 rounded-xl spooky-inner border border-border text-muted-foreground font-display font-medium text-center text-sm uppercase tracking-wider">
+                  {cp ? `${cp.nickname} ${t('game.isSpeaking', language)}...` : t('game.waitingTurn', language)}
+                </div>
+                {isHost && isOffline && (
+                  <button
+                    onClick={() => { playClick(); skipTurn(currentTurnPlayer); }}
+                    className="w-full py-3 spooky-btn text-sm flex items-center justify-center gap-2 border-destructive/50"
+                  >
+                    <SkipForward className="w-4 h-4" />
+                    {t('game.skipTurn', language)} ({cp?.nickname})
+                  </button>
+                )}
               </div>
             );
           })()}
