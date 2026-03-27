@@ -822,6 +822,62 @@ Deno.serve(async (req) => {
         return json({ success: true });
       }
 
+      // ─── Skip Turn (host skips offline player) ───
+      case 'skip-turn': {
+        const { session_id, room_id, target_session_id } = params;
+        if (!session_id || !room_id || !target_session_id) return json({ error: 'Missing fields' }, 400);
+
+        const { data: room } = await supabase
+          .from('rooms').select('phase, current_round, spoke_rounds, host_session_id').eq('id', room_id).single();
+        if (!room) return json({ error: 'Room not found' }, 404);
+        if (room.host_session_id !== session_id) return json({ error: 'Only host' }, 403);
+        if (room.phase !== 'discussion') return json({ error: 'Not in discussion phase' }, 400);
+
+        // Verify the target is the current speaker
+        const { data: allSpokeEvents } = await supabase
+          .from('room_events').select('session_id, data')
+          .eq('room_id', room_id).eq('event_type', 'spoke');
+        const roundSpokeEvents = (allSpokeEvents || []).filter(e => {
+          const d = e.data as Record<string, unknown> | null;
+          return d && d.game_round === room.current_round;
+        });
+
+        const { data: activePlayers } = await supabase
+          .from('room_players').select('session_id')
+          .eq('room_id', room_id).eq('is_eliminated', false)
+          .order('joined_at');
+        const playerOrder = (activePlayers || []).map(p => p.session_id);
+        const spokeRounds = room.spoke_rounds || 2;
+        const totalTurns = playerOrder.length * spokeRounds;
+        const currentTurnIndex = roundSpokeEvents.length;
+
+        const expectedPlayer = playerOrder[currentTurnIndex % playerOrder.length];
+        if (target_session_id !== expectedPlayer) {
+          return json({ error: 'This player is not the current speaker' }, 400);
+        }
+
+        const turnNumber = Math.floor(currentTurnIndex / playerOrder.length) + 1;
+
+        // Insert a spoke event on behalf of the skipped player
+        await supabase.from('room_events').insert({
+          room_id, event_type: 'spoke', session_id: target_session_id,
+          data: { game_round: room.current_round, turn: turnNumber, turn_index: currentTurnIndex, skipped_by_host: true },
+        });
+
+        const newTotalSpoken = currentTurnIndex + 1;
+        if (newTotalSpoken >= totalTurns) {
+          await supabase.from('rooms').update({
+            phase: 'voting', updated_at: new Date().toISOString(),
+          }).eq('id', room_id);
+          await supabase.from('room_events').insert({
+            room_id, event_type: 'phase_changed', session_id,
+            data: { from: 'discussion', to: 'voting', auto: true },
+          });
+        }
+
+        return json({ success: true, skipped: target_session_id, auto_advanced: newTotalSpoken >= totalTurns });
+      }
+
       default:
         return json({ error: 'Unknown action' }, 400);
     }

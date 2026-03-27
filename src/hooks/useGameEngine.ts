@@ -113,5 +113,8 @@ export function useGameEngine() {
 
     shufflePlayers: (session_id: string, room_id: string) =>
       callEngine<{ success: boolean }>('shuffle-players', { session_id, room_id }),
+
+    skipTurn: (session_id: string, room_id: string, target_session_id: string) =>
+      callEngine<{ success: boolean }>('skip-turn', { session_id, room_id, target_session_id }),
   };
 }
