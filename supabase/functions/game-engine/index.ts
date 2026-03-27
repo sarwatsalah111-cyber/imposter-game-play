@@ -495,8 +495,10 @@ Deno.serve(async (req) => {
           .from('votes').select('*').eq('room_id', room_id).eq('round', room.current_round);
 
         const tally: Record<string, number> = {};
+        const voteDetails: Array<{ voter: string; target: string }> = [];
         (votes || []).forEach(v => {
           tally[v.target_session_id] = (tally[v.target_session_id] || 0) + 1;
+          voteDetails.push({ voter: v.voter_session_id, target: v.target_session_id });
         });
 
         const maxVotes = Math.max(...Object.values(tally), 0);
@@ -511,6 +513,7 @@ Deno.serve(async (req) => {
 
         return json({
           votes: tally,
+          vote_details: voteDetails,
           imposter_session_id: room.imposter_session_id,
           secret_word: room.secret_word,
           caught,
