@@ -277,7 +277,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             .catch(() => {});
         } else if (phase === 'results') {
           engine.getResults(r.id)
-            .then(results => update({ results }))
+            .then(results => update({ results: { ...results, vote_details: results.vote_details || [] } }))
             .catch(() => {});
         }
       } catch {
@@ -435,7 +435,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (state.phase === 'results' && state.room && !state.results) {
       engine.getResults(state.room.id)
-        .then(results => update({ results }))
+        .then(results => update({ results: { ...results, vote_details: results.vote_details || [] } }))
         .catch(() => {});
     }
   }, [state.phase, state.room?.id]);
@@ -546,6 +546,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (!state.room) return;
       try {
         await engine.kickPlayer(state.sessionId, state.room.id, targetSessionId);
+      } catch (e: unknown) { update({ error: (e as Error).message }); }
+    },
+    skipTurn: async (targetSessionId) => {
+      if (!state.room) return;
+      try {
+        await engine.skipTurn(state.sessionId, state.room.id, targetSessionId);
+        refreshSpokeStatus(state.room.id);
       } catch (e: unknown) { update({ error: (e as Error).message }); }
     },
     leaveRoom: async () => {
