@@ -69,6 +69,7 @@ export function useGameEngine() {
     getResults: (room_id: string) =>
       callEngine<{
         votes: Record<string, number>;
+        vote_details: Array<{ voter: string; target: string }>;
         imposter_session_id: string;
         secret_word: string;
         caught: boolean;
