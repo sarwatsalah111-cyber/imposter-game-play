@@ -1,98 +1,72 @@
 
-# The Imposter — Improvement Plan
 
-## Current State Summary
-The game is a functional multiplayer party word game with: lobby, reveal, speaking queue, voting, results, leaderboard, 4-language support (EN/AR/KU_CENTRAL/KU_KURMANJI), PWA, sound/vibration, imposter guess mechanic, scoring system, and host controls.
+# Game Improvement Recommendations
 
----
-
-## 🎯 Accuracy & Bug Fixes (Priority 1)
-
-### 1. Hardcoded English strings still in UI
-Several strings in `GameScreen.tsx` and `LobbyScreen.tsx` are still hardcoded in English:
-- "Leave Game?" / "You'll lose your progress" / "Stay" / "Leave" (GameScreen L790-803)
-- "Loading..." (GameScreen L600)
-- "Copied!" (LobbyScreen L242)
-- "Starting match..." / "Start failed" / "Retry Start" / "Reconnect" (LobbyScreen L194-216)
-- "Connection issue — no players loaded" / "Retry" (LobbyScreen L172-178)
-- "Sound Effects" / "Vibration" (LobbyScreen L299, L309)
-- "Cancel" in ImposterGuessPanel (GameScreen L279)
-
-**Action:** Add all missing i18n keys and replace hardcoded strings.
-
-### 2. Leave confirmation not translated
-The leave game modal uses English-only text.
-
-### 3. CountdownTimer syncs per-client, not server
-Each client starts its own countdown from `seconds` — if they enter the phase at different times, timers drift. Consider adding a `phase_started_at` timestamp to the room so clients can compute remaining time from the server clock.
+After a thorough review of your entire codebase (game engine, context, all phase components, lobby, session management), here are the issues and improvements I recommend, grouped by priority.
 
 ---
 
-## 🎮 Fun & Engagement (Priority 2)
+## Accuracy & Stability Fixes
 
-### 4. Category selection for words
-Let the host pick which word categories to include (Animals, Places, Professions, etc.) before starting. This adds variety and lets groups tailor difficulty.
+### 1. Imposter guess should check ALL translations, not just the primary word
+Currently the `imposter-guess` action only compares the guess against `room.secret_word`. If the imposter types the English or Arabic translation of the word, it fails. The guess should also match against all translations stored in `word_bank.translations`.
 
-### 5. Difficulty levels for words
-The word bank has a `difficulty` field but it's not used in the UI. Let the host filter by difficulty (Easy/Medium/Hard).
+### 2. Non-voters should not block the game
+If a player doesn't vote before the timer ends, only the host's timer triggers `advancePhase('results')`. Non-host clients with no vote just sit there. Consider auto-advancing to results server-side when the voting timer expires, or at minimum ensuring the host always advances.
 
-### 6. Round recap animation
-After results, show a quick animated recap: who voted for whom, with lines/arrows. Makes the reveal moment more dramatic and fun.
+### 3. Player who disconnects mid-round breaks the speaking queue
+If a player goes offline during the discussion phase, the queue gets stuck on their turn forever. The `mark-spoke` action should allow the host to skip an offline player's turn, or auto-skip after a timeout.
 
-### 7. Emoji reactions during speaking queue
-Let non-speaking players send quick emoji reactions (😂🤔🤨👏) visible to everyone. Adds engagement while waiting for your turn.
+### 4. Score update is not atomic (race condition)
+In `finalizeRound` and `imposter-guess`, you do `SELECT score` then `UPDATE score + delta` — two separate queries. If two score events fire simultaneously, one can overwrite the other. Use a SQL increment: `score = score + delta` via an RPC or raw SQL.
 
-### 8. Sound effects per phase
-- Victory/defeat sounds exist but phase transition sounds (reveal card flip, voting drumroll, timer warning beep) would add atmosphere.
-- Add a "tick-tock" sound in the last 5 seconds of voting timer.
+### 5. "Play Again" doesn't carry over `reveal_time`
+In `GameContext.tsx` line 578-585, the `playAgain` function copies `max_players`, `total_rounds`, `spoke_rounds`, `voting_time`, `discussion_time` — but NOT `reveal_time`. The host's custom reveal time is lost.
 
-### 9. "Who's the Imposter?" suspense reveal
-Instead of instantly showing results, add a dramatic 3-2-1 countdown or card-flip reveal animation before showing who was voted out.
-
-### 10. Player avatars / colors
-Assign each player a unique color or simple avatar icon in the lobby. Makes the player list more visually distinct and fun.
+### 6. Imposter guess win closes the room permanently
+When the imposter guesses correctly (line 587-591), the room status is set to `closed`. This means no more rounds can be played even if `current_round < total_rounds`. It should only close if it's the final round, otherwise just advance to results.
 
 ---
 
-## 🔧 Quality of Life (Priority 3)
+## Fun & Engagement Improvements
 
-### 11. Share room via link
-Generate a shareable URL like `https://imposter-game-play.lovable.app/?join=XXXXXX` that auto-fills the room code on the join screen.
+### 7. Dramatic suspense reveal before results
+Instead of instantly showing who was voted out, add a 3-second countdown animation with a card-flip reveal. Makes the core moment more exciting.
 
-### 12. Game history / stats
-Track personal stats across sessions: games played, times as imposter, win rate, best streak. Store in localStorage or optionally in the database.
+### 8. Auto-advance to voting when all players have spoken
+This already works, but there's no visual countdown or warning before the auto-transition. Add a brief "Moving to voting..." toast or animation.
 
-### 13. Spectator mode
-Allow players who join a full room or join mid-game to watch as spectators without participating in voting.
-
-### 14. Auto-kick AFK players
-If a player hasn't sent a heartbeat for 30s+ during an active round, auto-mark them as offline and skip their speaking turn automatically.
-
-### 15. "Play Again" should preserve all players
-Currently "Play Again" resets scores. Add an option to continue with cumulative scores across multiple matches (tournament mode).
+### 9. Show who voted for whom in results
+Currently results show vote tallies (counts) but not who voted for whom. Showing vote attribution (e.g., "Ahmed → Dara") adds drama and discussion.
 
 ---
 
-## 🏗️ Code Quality (Priority 4)
+## Recommended Implementation Order
 
-### 16. Break up GameScreen.tsx (819 lines)
-Split into: `RevealPhase.tsx`, `SpeakingQueuePhase.tsx`, `VotingPhase.tsx`, `ResultsPhase.tsx`, `CountdownTimer.tsx`, `ImposterGuessPanel.tsx`.
-
-### 17. Break up HomeScreen.tsx (545 lines)
-Extract: `HowToPlayModal.tsx`, `AboutModal.tsx`, `SettingsModal.tsx`.
-
-### 18. Deduplicate SettingRow / SettingControl
-`HomeScreen.tsx` and `LobbyScreen.tsx` each define their own setting row component. Extract to a shared `SettingControl` component.
+1. **Fix "Play Again" missing `reveal_time`** — 1 line fix, high impact
+2. **Fix imposter guess win closing room prematurely** — logic bug, breaks multi-round games
+3. **Fix imposter guess to check all translations** — fairness improvement
+4. **Fix score race condition** — data integrity
+5. **Add host skip for offline players in speaking queue** — prevents stuck games
+6. **Add suspense reveal animation** — fun factor
+7. **Show vote attribution in results** — engagement
 
 ---
 
-## 📋 Recommended Implementation Order
+## Technical Details
 
-1. **Fix hardcoded English strings** — quick win, big impact for Kurdish/Arabic users
-2. **Share room via link** — most requested social feature for party games
-3. **Category/difficulty selection** — adds replayability
-4. **Dramatic results reveal animation** — makes the core moment more fun
-5. **Split large components** — maintainability for all future work
-6. **Server-synced timers** — accuracy fix
-7. **Emoji reactions** — engagement booster
-8. **Player avatars/colors** — visual polish
+**Fix 1 — reveal_time in playAgain** (GameContext.tsx ~line 583):
+Add `reveal_time: state.room.reveal_time` to the settings object.
+
+**Fix 2 — imposter guess win room closure** (game-engine/index.ts ~line 586-591):
+Change to only set `status: 'closed'` if `room.current_round >= room.total_rounds`, otherwise keep `status: 'playing'`.
+
+**Fix 3 — translation matching** (game-engine/index.ts ~line 548-550):
+After the primary word comparison, query `word_bank` for the `translations` field and compare against all values.
+
+**Fix 4 — atomic score increment** (game-engine/index.ts ~line 899-906):
+Replace the SELECT+UPDATE pattern with a single UPDATE using SQL: `score = score + $delta`.
+
+**Fix 5 — skip offline player** (game-engine/index.ts mark-spoke):
+Add a `skip-turn` action that lets the host advance past an offline player's turn.
+
