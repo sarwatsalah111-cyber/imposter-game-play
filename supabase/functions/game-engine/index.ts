@@ -544,10 +544,23 @@ Deno.serve(async (req) => {
           return json({ error: 'Cannot guess now' }, 400);
         }
 
-        // Normalize and compare
+        // Normalize and compare against primary word AND all translations
         const normalizedGuess = guess.trim().toLowerCase();
         const normalizedWord = (room.secret_word || '').trim().toLowerCase();
-        const correct = normalizedGuess === normalizedWord;
+        let correct = normalizedGuess === normalizedWord;
+
+        // Also check all translations from word_bank
+        if (!correct && room.secret_word) {
+          const { data: wordEntry } = await supabase
+            .from('word_bank').select('translations')
+            .eq('word', room.secret_word).maybeSingle();
+          if (wordEntry?.translations) {
+            const translations = wordEntry.translations as Record<string, string>;
+            correct = Object.values(translations).some(
+              t => t && t.trim().toLowerCase() === normalizedGuess
+            );
+          }
+        }
 
         if (correct) {
           // Award +3 to imposter, skip voting, go to results
@@ -573,22 +586,25 @@ Deno.serve(async (req) => {
               player_id: session_id, delta: 3, reason: 'GUESS_WIN',
             });
 
-            // Update player score
-            const { data: player } = await supabase
-              .from('room_players').select('score')
-              .eq('room_id', room_id).eq('session_id', session_id).single();
-            if (player) {
-              await supabase.from('room_players').update({ score: player.score + 3 })
-                .eq('room_id', room_id).eq('session_id', session_id);
-            }
+            // Update player score atomically
+            await supabase.rpc('increment_player_score', {
+              p_room_id: room_id,
+              p_session_id: session_id,
+              p_delta: 3,
+            });
           }
 
-          // Advance directly to results and close the game
-          await supabase.from('rooms').update({
-            phase: 'results', status: 'closed',
+          // Advance to results — only close if final round
+          const isFinalRound = room.current_round >= room.total_rounds;
+          const roomUpdate: Record<string, unknown> = {
+            phase: 'results',
             updated_at: new Date().toISOString(),
-            closed_at: new Date().toISOString(),
-          }).eq('id', room_id);
+          };
+          if (isFinalRound) {
+            roomUpdate.status = 'closed';
+            roomUpdate.closed_at = new Date().toISOString();
+          }
+          await supabase.from('rooms').update(roomUpdate).eq('id', room_id);
 
           await supabase.from('room_events').insert({
             room_id, event_type: 'phase_changed', session_id,
@@ -895,14 +911,12 @@ async function finalizeRound(
     });
   }
 
-  // Update player scores atomically
+  // Update player scores atomically using RPC
   for (const [playerId, delta] of Object.entries(pointsAwarded)) {
-    const { data: player } = await supabase
-      .from('room_players').select('score')
-      .eq('room_id', roomId).eq('session_id', playerId).single();
-    if (player) {
-      await supabase.from('room_players').update({ score: player.score + delta })
-        .eq('room_id', roomId).eq('session_id', playerId);
-    }
+    await supabase.rpc('increment_player_score', {
+      p_room_id: roomId,
+      p_session_id: playerId,
+      p_delta: delta,
+    });
   }
 }

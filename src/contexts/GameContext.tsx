@@ -582,6 +582,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         spoke_rounds: state.room.spoke_rounds ?? 2,
         voting_time: state.room.voting_time,
         discussion_time: state.room.discussion_time,
+        reveal_time: state.room.reveal_time,
       };
       const lang = state.room.language as Language;
       // Reset local state first
