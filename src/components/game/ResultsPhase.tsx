@@ -1,18 +1,50 @@
 import { useEffect, useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
 import { Trophy, ArrowRight, Home, Star, RotateCcw } from 'lucide-react';
 import { playVictory, playGameOver, playClick } from '@/lib/sounds';
 import { LeaderboardScreen } from './LeaderboardScreen';
 
+function SuspenseCountdown({ onComplete }: { onComplete: () => void }) {
+  const [count, setCount] = useState(3);
+
+  useEffect(() => {
+    if (count <= 0) {
+      onComplete();
+      return;
+    }
+    const timer = setTimeout(() => setCount(c => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [count, onComplete]);
+
+  return (
+    <div className="flex-1 flex items-center justify-center">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={count}
+          initial={{ scale: 0.3, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 2, opacity: 0 }}
+          transition={{ duration: 0.4 }}
+          className="font-display text-8xl font-black text-primary text-glow-purple"
+        >
+          {count > 0 ? count : '?'}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export function ResultsPhase() {
   const { results, players, room, language, isHost, sessionId, goHome, startGame, playAgain } = useGame();
   const soundPlayedRef = useRef(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showSuspense, setShowSuspense] = useState(true);
+  const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
-    if (results && !soundPlayedRef.current) {
+    if (results && !soundPlayedRef.current && revealed) {
       soundPlayedRef.current = true;
       if (results.caught) {
         playVictory();
@@ -20,9 +52,24 @@ export function ResultsPhase() {
         playGameOver();
       }
     }
-  }, [results]);
+  }, [results, revealed]);
 
   if (!results) return <div className="flex-1 flex items-center justify-center"><div className="text-muted-foreground animate-pulse font-display uppercase tracking-wider">{t('game.loadingLeaderboard', language)}</div></div>;
+
+  if (showSuspense && !revealed) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex-1 flex flex-col items-center justify-center"
+      >
+        <p className="text-muted-foreground font-display text-lg uppercase tracking-widest mb-8 animate-pulse">
+          {t('game.revealing', language)}
+        </p>
+        <SuspenseCountdown onComplete={() => { setShowSuspense(false); setRevealed(true); }} />
+      </motion.div>
+    );
+  }
 
   if (showLeaderboard) {
     return (
@@ -77,14 +124,49 @@ export function ResultsPhase() {
         {outcomeLabel}
       </h2>
 
-      <div className="spooky-panel spider-corner p-5 text-center w-full max-w-xs scratched-texture">
+      <motion.div
+        initial={{ rotateY: 90 }}
+        animate={{ rotateY: 0 }}
+        transition={{ duration: 0.6, type: 'spring' }}
+        className="spooky-panel spider-corner p-5 text-center w-full max-w-xs scratched-texture"
+      >
         <p className="text-muted-foreground text-xs uppercase tracking-widest mb-2 font-display">{t('game.imposterWas', language)}</p>
         <p className="font-display text-xl font-bold text-destructive uppercase">{imposter?.nickname || '???'}</p>
         <div className="mt-3 spooky-inner border border-border rounded-lg p-3">
           <p className="text-muted-foreground text-xs font-display uppercase tracking-widest">{t('game.secretWord', language)}</p>
           <p className="font-display text-lg font-bold text-accent text-glow-gold mt-1">{results.secret_word}</p>
         </div>
-      </div>
+      </motion.div>
+
+      {/* Vote attribution — who voted for whom */}
+      {results?.vote_details && results.vote_details.length > 0 && (
+        <div className="w-full max-w-xs">
+          <p className="text-xs text-muted-foreground font-display uppercase tracking-widest text-center mb-2">
+            {t('game.voting', language)}
+          </p>
+          <div className="space-y-1.5">
+            {results.vote_details.map((vd, idx) => {
+              const voter = players.find(p => p.session_id === vd.voter);
+              const target = players.find(p => p.session_id === vd.target);
+              return (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.08 }}
+                  className="flex items-center gap-2 text-sm spooky-inner border border-border rounded-lg px-3 py-2"
+                >
+                  <span className="text-foreground font-medium">{voter?.nickname || '?'}</span>
+                  <span className="text-muted-foreground text-xs">→</span>
+                  <span className={`font-medium ${vd.target === results.imposter_session_id ? 'text-destructive' : 'text-foreground'}`}>
+                    {target?.nickname || '?'}
+                  </span>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Points awarded this round */}
       {results?.points_awarded && Object.keys(results.points_awarded).length > 0 && (
@@ -113,26 +195,6 @@ export function ResultsPhase() {
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* Vote tally */}
-      {Object.keys(results.votes).length > 0 && (
-        <div className="w-full max-w-xs space-y-1.5">
-          {Object.entries(results.votes).map(([sid, count]) => {
-            const player = players.find(p => p.session_id === sid);
-            return (
-              <div key={sid} className="flex items-center gap-2 text-sm spooky-inner border border-border rounded-lg px-3 py-2">
-                <span className="flex-1 text-foreground font-medium">{player?.nickname || sid.slice(0, 8)}</span>
-                <div className="flex gap-1">
-                  {Array.from({ length: count }).map((_, i) => (
-                    <div key={i} className="w-2.5 h-2.5 rounded-full bg-accent" />
-                  ))}
-                </div>
-                <span className="text-accent text-xs w-6 text-right font-display font-bold">{count}</span>
-              </div>
-            );
-          })}
         </div>
       )}
 
