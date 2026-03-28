@@ -195,6 +195,19 @@ Deno.serve(async (req) => {
           const imposterIdx = Math.floor(Math.random() * eligiblePlayers.length);
           const imposterSessionId = eligiblePlayers[imposterIdx].session_id;
 
+          // Auto-shuffle player order for fairness
+          const shuffledPlayers = [...players];
+          for (let si = shuffledPlayers.length - 1; si > 0; si--) {
+            const sj = Math.floor(Math.random() * (si + 1));
+            [shuffledPlayers[si], shuffledPlayers[sj]] = [shuffledPlayers[sj], shuffledPlayers[si]];
+          }
+          const shuffleBase = new Date('2020-01-01T00:00:00Z');
+          await Promise.all(shuffledPlayers.map((p, idx) =>
+            supabase.from('room_players')
+              .update({ joined_at: new Date(shuffleBase.getTime() + idx * 1000).toISOString() })
+              .eq('id', p.id)
+          ));
+
           const newRound = (room.phase === 'results') ? room.current_round + 1 : 1;
 
           // Reset scores on first round of a new match
