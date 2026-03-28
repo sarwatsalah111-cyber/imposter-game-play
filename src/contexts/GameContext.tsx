@@ -650,8 +650,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
   };
 
+  const contextValue = useMemo(() => ({ ...state, ...actions }), [state, actions]);
+
   return (
-    <GameContext.Provider value={{ ...state, ...actions }}>
+    <GameContext.Provider value={contextValue}>
       {children}
     </GameContext.Provider>
   );
