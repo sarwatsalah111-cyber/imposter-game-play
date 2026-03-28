@@ -407,7 +407,7 @@ export function LobbyScreen() {
                   </button>
                 )}
                 <Wifi className={`w-3 h-3 ${player.is_online ? 'text-neon-green' : 'text-destructive'}`} />
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
