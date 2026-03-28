@@ -195,6 +195,19 @@ Deno.serve(async (req) => {
           const imposterIdx = Math.floor(Math.random() * eligiblePlayers.length);
           const imposterSessionId = eligiblePlayers[imposterIdx].session_id;
 
+          // Auto-shuffle player order for fairness
+          const shuffledPlayers = [...players];
+          for (let si = shuffledPlayers.length - 1; si > 0; si--) {
+            const sj = Math.floor(Math.random() * (si + 1));
+            [shuffledPlayers[si], shuffledPlayers[sj]] = [shuffledPlayers[sj], shuffledPlayers[si]];
+          }
+          const shuffleBase = new Date('2020-01-01T00:00:00Z');
+          await Promise.all(shuffledPlayers.map((p, idx) =>
+            supabase.from('room_players')
+              .update({ joined_at: new Date(shuffleBase.getTime() + idx * 1000).toISOString() })
+              .eq('id', p.id)
+          ));
+
           const newRound = (room.phase === 'results') ? room.current_round + 1 : 1;
 
           // Reset scores on first round of a new match
@@ -796,10 +809,9 @@ Deno.serve(async (req) => {
         if (!session_id || !room_id) return json({ error: 'Missing fields' }, 400);
 
         const { data: room } = await supabase
-          .from('rooms').select('host_session_id, phase').eq('id', room_id).single();
+          .from('rooms').select('host_session_id').eq('id', room_id).single();
         if (!room) return json({ error: 'Room not found' }, 404);
         if (room.host_session_id !== session_id) return json({ error: 'Only host' }, 403);
-        if (room.phase !== 'lobby') return json({ error: 'Can only shuffle in lobby' }, 400);
 
         const { data: players } = await supabase
           .from('room_players').select('id, session_id')
@@ -814,10 +826,12 @@ Deno.serve(async (req) => {
         }
 
         const baseTime = new Date('2020-01-01T00:00:00Z');
-        for (let i = 0; i < shuffled.length; i++) {
-          const newTime = new Date(baseTime.getTime() + i * 1000).toISOString();
-          await supabase.from('room_players').update({ joined_at: newTime }).eq('id', shuffled[i].id);
-        }
+        const updates = shuffled.map((p, i) => 
+          supabase.from('room_players')
+            .update({ joined_at: new Date(baseTime.getTime() + i * 1000).toISOString() })
+            .eq('id', p.id)
+        );
+        await Promise.all(updates);
 
         // Touch room to trigger realtime update
         await supabase.from('rooms').update({ updated_at: new Date().toISOString() }).eq('id', room_id);
