@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, memo } from 'react';
+import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
 import { LogOut } from 'lucide-react';
@@ -8,6 +8,11 @@ import { RevealPhase } from './RevealPhase';
 import { SpeakingQueuePhase } from './SpeakingQueuePhase';
 import { VotingPhase } from './VotingPhase';
 import { ResultsPhase } from './ResultsPhase';
+
+const MemoReveal = memo(RevealPhase);
+const MemoSpeaking = memo(SpeakingQueuePhase);
+const MemoVoting = memo(VotingPhase);
+const MemoResults = memo(ResultsPhase);
 
 export function GameScreen() {
   const { phase, room, language, leaveRoom } = useGame();
@@ -63,12 +68,10 @@ export function GameScreen() {
           </div>
         )}
 
-        <AnimatePresence mode="popLayout">
-          {phase === 'reveal' && <RevealPhase key="reveal" />}
-          {phase === 'discussion' && <SpeakingQueuePhase key="discussion" />}
-          {phase === 'voting' && <VotingPhase key="voting" />}
-          {phase === 'results' && <ResultsPhase key="results" />}
-        </AnimatePresence>
+        {phase === 'reveal' && <MemoReveal />}
+        {phase === 'discussion' && <MemoSpeaking />}
+        {phase === 'voting' && <MemoVoting />}
+        {phase === 'results' && <MemoResults />}
       </div>
     </div>
   );
