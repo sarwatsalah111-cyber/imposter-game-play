@@ -149,11 +149,8 @@ export function ResultsPhase() {
               const voter = players.find(p => p.session_id === vd.voter);
               const target = players.find(p => p.session_id === vd.target);
               return (
-                <motion.div
+                <div
                   key={idx}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.08 }}
                   className="flex items-center gap-2 text-sm spooky-inner border border-border rounded-lg px-3 py-2"
                 >
                   <span className="text-foreground font-medium">{voter?.nickname || '?'}</span>
@@ -161,7 +158,7 @@ export function ResultsPhase() {
                   <span className={`font-medium ${vd.target === results.imposter_session_id ? 'text-destructive' : 'text-foreground'}`}>
                     {target?.nickname || '?'}
                   </span>
-                </motion.div>
+                </div>
               );
             })}
           </div>
