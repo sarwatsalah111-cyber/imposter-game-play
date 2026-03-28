@@ -159,7 +159,7 @@ export function SpeakingQueuePhase() {
                   ))}
                 </div>
               )}
-            </motion.div>
+            </div>
           );
         })}
       </div>
