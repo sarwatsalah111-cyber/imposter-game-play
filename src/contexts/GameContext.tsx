@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getSessionId, getNickname, setNickname as saveNickname, saveRoomContext, getRoomContext, clearRoomContext } from '@/lib/session';
 import { useGameEngine } from '@/hooks/useGameEngine';
@@ -367,25 +367,29 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-    // Polling fallback + host migration watchdog
-    // Use a faster interval (1.5s) for spoke status during discussion
+    // Polling fallback — adaptive intervals
+    // Spoke status: 3s during discussion
     const spokePollRef_inner = setInterval(() => {
       if (phaseRef.current === 'discussion') {
         refreshSpokeStatus(roomId);
       }
-    }, 1500);
+    }, 3000);
 
-    // ── Faster polling (2s) during phase transitions, 3s otherwise ──
+    // Room + players poll: 5s (Realtime handles instant updates, this is fallback only)
     playerPollRef.current = setInterval(async () => {
       fetchPlayers(roomId);
       fetchRoom(roomId);
+    }, 5000);
 
-      // Host migration watchdog
+    // Host migration watchdog — separate interval, uses refs to avoid setState
+    const migrationRef = setInterval(() => {
+      const rid = roomIdRef.current;
+      if (!rid) return;
+      // Only run if we're NOT the host
       setState(prev => {
         if (!prev.room || prev.isHost) return prev;
         const hostPlayer = prev.players.find(p => p.is_host);
-        if (!hostPlayer) return prev;
-        if (hostPlayer.is_online) return prev;
+        if (!hostPlayer || hostPlayer.is_online) return prev;
         const elapsed = Date.now() - new Date(hostPlayer.last_heartbeat).getTime();
         if (elapsed > 25000) {
           const onlinePlayers = prev.players.filter(p => p.is_online).sort((a, b) =>
@@ -393,13 +397,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           );
           if (onlinePlayers.length > 0 && onlinePlayers[0].session_id === sessionIdRef.current) {
             setTimeout(() => {
-              engine.migrateHost(sessionIdRef.current, roomId).catch(() => {});
+              engine.migrateHost(sessionIdRef.current, rid).catch(() => {});
             }, 0);
           }
         }
         return prev;
       });
-    }, 2000);
+    }, 15000);
 
     // Heartbeat
     heartbeatRef.current = setInterval(() => {
@@ -411,6 +415,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (playerPollRef.current) clearInterval(playerPollRef.current);
       clearInterval(spokePollRef_inner);
+      clearInterval(migrationRef);
     };
   }, [state.room?.id]);
 
@@ -645,8 +650,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     },
   };
 
+  const contextValue = useMemo(() => ({ ...state, ...actions }), [state, actions]);
+
   return (
-    <GameContext.Provider value={{ ...state, ...actions }}>
+    <GameContext.Provider value={contextValue}>
       {children}
     </GameContext.Provider>
   );

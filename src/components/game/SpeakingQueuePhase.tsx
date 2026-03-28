@@ -122,12 +122,9 @@ export function SpeakingQueuePhase() {
           const isMe = sid === sessionId;
 
           return (
-            <motion.div
+            <div
               key={sid}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: i * 0.02, duration: 0.1 }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-all ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${
                 isCurrent
                   ? 'spooky-panel border-primary/60 shadow-[0_0_16px_hsl(280_75%_55%/0.25)]'
                   : isDone
@@ -162,7 +159,7 @@ export function SpeakingQueuePhase() {
                   ))}
                 </div>
               )}
-            </motion.div>
+            </div>
           );
         })}
       </div>

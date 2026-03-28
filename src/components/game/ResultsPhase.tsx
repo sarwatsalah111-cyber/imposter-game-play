@@ -149,11 +149,8 @@ export function ResultsPhase() {
               const voter = players.find(p => p.session_id === vd.voter);
               const target = players.find(p => p.session_id === vd.target);
               return (
-                <motion.div
+                <div
                   key={idx}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.08 }}
                   className="flex items-center gap-2 text-sm spooky-inner border border-border rounded-lg px-3 py-2"
                 >
                   <span className="text-foreground font-medium">{voter?.nickname || '?'}</span>
@@ -161,7 +158,7 @@ export function ResultsPhase() {
                   <span className={`font-medium ${vd.target === results.imposter_session_id ? 'text-destructive' : 'text-foreground'}`}>
                     {target?.nickname || '?'}
                   </span>
-                </motion.div>
+                </div>
               );
             })}
           </div>
@@ -176,22 +173,15 @@ export function ResultsPhase() {
             {Object.entries(results.points_awarded).map(([sid, pts]) => {
               const player = players.find(p => p.session_id === sid);
               return (
-                <motion.div
+                <div
                   key={sid}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
                   className="flex items-center gap-2 text-sm spooky-inner border border-accent/30 rounded-lg px-3 py-2"
                 >
                   <span className="flex-1 text-foreground font-medium">{player?.nickname || sid.slice(0, 8)}</span>
-                  <motion.span
-                    initial={{ scale: 0.5 }}
-                    animate={{ scale: [1, 1.3, 1] }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
-                    className="text-accent font-display font-bold text-base"
-                  >
+                  <span className="text-accent font-display font-bold text-base">
                     +{pts}
-                  </motion.span>
-                </motion.div>
+                  </span>
+                </div>
               );
             })}
           </div>
