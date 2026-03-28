@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getSessionId, getNickname, setNickname as saveNickname, saveRoomContext, getRoomContext, clearRoomContext } from '@/lib/session';
 import { useGameEngine } from '@/hooks/useGameEngine';
