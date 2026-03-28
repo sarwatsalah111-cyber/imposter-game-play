@@ -415,6 +415,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (playerPollRef.current) clearInterval(playerPollRef.current);
       clearInterval(spokePollRef_inner);
+      clearInterval(migrationRef);
     };
   }, [state.room?.id]);
 
