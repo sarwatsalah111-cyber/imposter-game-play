@@ -376,12 +376,9 @@ export function LobbyScreen() {
           </div>
           <div className="space-y-2">
             {players.map((player, i) => (
-              <motion.div
+              <div
                 key={player.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-all ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${
                   player.session_id === sessionId
                     ? 'spooky-inner border-primary/40 shadow-[0_0_12px_hsl(280_75%_55%/0.15)]'
                     : 'spooky-inner border-border'
