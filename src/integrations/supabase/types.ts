@@ -47,13 +47,6 @@ export type Database = {
             referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "room_events_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "rooms_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       room_players: {
@@ -102,13 +95,6 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "room_players_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "rooms_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -230,13 +216,6 @@ export type Database = {
             referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "round_results_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "rooms_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       score_events: {
@@ -278,13 +257,6 @@ export type Database = {
             referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "score_events_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "rooms_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       votes: {
@@ -318,13 +290,6 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "votes_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "rooms_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -364,63 +329,7 @@ export type Database = {
       }
     }
     Views: {
-      rooms_safe: {
-        Row: {
-          closed_at: string | null
-          code: string | null
-          created_at: string | null
-          current_round: number | null
-          discussion_time: number | null
-          host_session_id: string | null
-          id: string | null
-          language: string | null
-          max_players: number | null
-          min_players: number | null
-          phase: string | null
-          reveal_time: number | null
-          status: string | null
-          total_rounds: number | null
-          updated_at: string | null
-          voting_time: number | null
-        }
-        Insert: {
-          closed_at?: string | null
-          code?: string | null
-          created_at?: string | null
-          current_round?: number | null
-          discussion_time?: number | null
-          host_session_id?: string | null
-          id?: string | null
-          language?: string | null
-          max_players?: number | null
-          min_players?: number | null
-          phase?: string | null
-          reveal_time?: number | null
-          status?: string | null
-          total_rounds?: number | null
-          updated_at?: string | null
-          voting_time?: number | null
-        }
-        Update: {
-          closed_at?: string | null
-          code?: string | null
-          created_at?: string | null
-          current_round?: number | null
-          discussion_time?: number | null
-          host_session_id?: string | null
-          id?: string | null
-          language?: string | null
-          max_players?: number | null
-          min_players?: number | null
-          phase?: string | null
-          reveal_time?: number | null
-          status?: string | null
-          total_rounds?: number | null
-          updated_at?: string | null
-          voting_time?: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       increment_player_score: {
