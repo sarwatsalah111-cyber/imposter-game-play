@@ -4,6 +4,7 @@ import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
 import { Eye, MessageCircle, ArrowRight, Skull } from 'lucide-react';
 import { CountdownTimer } from './CountdownTimer';
+import revealLoop from '@/assets/reveal-loop.mp4.asset.json';
 
 export function RevealPhase() {
   const { reveal, language, room, isHost, advancePhase } = useGame();
@@ -89,8 +90,30 @@ export function RevealPhase() {
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-      className="flex-1 flex flex-col items-center justify-center gap-6 px-4"
+      className="flex-1 flex flex-col items-center justify-center gap-6 px-4 relative overflow-hidden"
     >
+      {/* Ambient reveal video — color-graded to match dark purple/gold theme */}
+      <video
+        src={revealLoop.url}
+        autoPlay
+        loop
+        muted
+        playsInline
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-25 mix-blend-screen"
+        style={{
+          filter: 'brightness(0.55) saturate(0.7) contrast(1.05) hue-rotate(-15deg)',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, hsl(var(--background) / 0.35) 0%, hsl(var(--background) / 0.85) 75%)',
+        }}
+      />
+      <div className="relative z-10 flex flex-col items-center gap-6 w-full">
       <div className="text-center">
         <p className="text-muted-foreground text-xs mb-2 uppercase tracking-widest font-display">
           {t('game.round', language)} {room?.current_round}
@@ -154,6 +177,7 @@ export function RevealPhase() {
           <ArrowRight className="w-4 h-4" />
         </button>
       )}
+      </div>
     </motion.div>
   );
 }
