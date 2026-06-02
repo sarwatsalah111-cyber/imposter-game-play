@@ -430,7 +430,23 @@ export function HomeScreen() {
           className="text-center"
         >
           <div className="flex items-center justify-center mb-3">
-            <SpyLogo size={52} className="text-primary drop-shadow-[0_0_16px_hsl(var(--primary)/0.5)]" />
+            <div
+              aria-hidden="true"
+              style={{
+                width: 72,
+                height: 72,
+                backgroundColor: 'hsl(var(--primary))',
+                WebkitMaskImage: `url(${spyLogo.url})`,
+                maskImage: `url(${spyLogo.url})`,
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                maskPosition: 'center',
+                WebkitMaskSize: 'contain',
+                maskSize: 'contain',
+                filter: 'drop-shadow(0 0 16px hsl(var(--primary) / 0.55))',
+              }}
+            />
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground text-glow-purple tracking-wide uppercase">
             {t('app.title', language)}
