@@ -1,51 +1,16 @@
+## Replace home logo with animated GIF
 
+Swap the masked spy logo on the HomeScreen with the uploaded animated GIF, displayed as a circle with a heavily feathered (soft) edge.
 
-# Build Native Android App with Capacitor
+### Changes
 
-Your game is already a PWA. To create a true native Android app publishable to the Play Store, we'll use **Capacitor** — a bridge that wraps your web app in a native Android shell with full device access.
+1. **Upload the GIF as a Lovable Asset** at `src/assets/spy-logo.gif.asset.json` (via `lovable-assets create` from `/mnt/user-uploads/Video_Project.gif`).
+2. **Edit `src/components/game/HomeScreen.tsx`** (around line 434):
+   - Remove the CSS-mask tinted `<div>` that currently renders `spyLogo`.
+   - Replace with an `<img>` tag pointing to the GIF asset URL so the animation plays.
+   - Wrap in a circular container: `border-radius: 50%`, `overflow: hidden`, square aspect, `object-cover`.
+   - Apply a strong feather using a radial-gradient mask (`maskImage: radial-gradient(circle, black 55%, transparent 80%)`) for soft, fading outlines — stronger than a hard circle clip.
+   - Keep the purple drop-shadow glow for theme cohesion.
+3. Drop the now-unused `spyLogo` PNG import.
 
-## What I'll Do
-
-1. **Install Capacitor dependencies**: `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`
-2. **Initialize Capacitor** with:
-   - App ID: `app.lovable.5a29bcedb2ac4fa49c28a94c3e543109`
-   - App Name: `imposter-game-play`
-   - Live-reload server pointing to your preview URL
-3. **Configure `capacitor.config.ts`** with proper webDir, server settings, and Android-specific options (fullscreen, portrait orientation)
-
-## What You'll Need to Do After
-
-Since native compilation requires local tools, you'll need to:
-
-1. **Export to GitHub** via the "Export to GitHub" button in Lovable
-2. **Clone and install** on your local machine:
-   ```
-   git clone <your-repo-url>
-   cd <project>
-   npm install
-   ```
-3. **Add Android platform**:
-   ```
-   npx cap add android
-   npx cap update android
-   ```
-4. **Build and sync**:
-   ```
-   npm run build
-   npx cap sync
-   ```
-5. **Run on device/emulator** (requires Android Studio installed):
-   ```
-   npx cap run android
-   ```
-
-You already have the `assetlinks.json` configured for package `com.sarwat.theimposter` — if you want to use that package name instead for the Play Store, we can update the Capacitor config accordingly.
-
-For a complete walkthrough, see the Lovable blog post on Capacitor mobile development.
-
-## Technical Details
-
-- **capacitor.config.ts** — new file with app metadata and live-reload server config
-- **package.json** — adds `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`
-- No changes to game logic or UI
-
+No changes to game logic, layout, or other components.
