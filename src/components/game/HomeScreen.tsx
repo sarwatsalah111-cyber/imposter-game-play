@@ -464,25 +464,52 @@ export function HomeScreen() {
           className="text-center"
         >
           <div className="flex items-center justify-center mb-3">
-            <video
-              src={spyLogo.url}
-              autoPlay
-              loop
-              muted
-              playsInline
-              aria-hidden="true"
-              style={{
-                width: 96,
-                height: 96,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                WebkitMaskImage:
-                  'radial-gradient(circle at center, black 38%, rgba(0,0,0,0.7) 55%, transparent 78%)',
-                maskImage:
-                  'radial-gradient(circle at center, black 38%, rgba(0,0,0,0.7) 55%, transparent 78%)',
-                filter: 'drop-shadow(0 0 18px hsl(var(--primary) / 0.55))',
+            <button
+              type="button"
+              onClick={() => {
+                const v = logoVideoRef.current;
+                if (!v) return;
+                const p = v.play();
+                if (p && typeof p.then === 'function') {
+                  p.then(() => setLogoNeedsTap(false)).catch(() => {});
+                }
               }}
-            />
+              aria-label="Play logo animation"
+              className="relative p-0 bg-transparent border-0 cursor-pointer"
+              style={{ width: 96, height: 96 }}
+            >
+              <video
+                ref={logoVideoRef}
+                src={spyLogo.url}
+                autoPlay
+                loop
+                muted
+                playsInline
+                // @ts-ignore — iOS Safari attribute
+                webkit-playsinline="true"
+                preload="auto"
+                aria-hidden="true"
+                style={{
+                  width: 96,
+                  height: 96,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  WebkitMaskImage:
+                    'radial-gradient(circle at center, black 38%, rgba(0,0,0,0.7) 55%, transparent 78%)',
+                  maskImage:
+                    'radial-gradient(circle at center, black 38%, rgba(0,0,0,0.7) 55%, transparent 78%)',
+                  filter: 'drop-shadow(0 0 18px hsl(var(--primary) / 0.55))',
+                }}
+              />
+              {logoNeedsTap && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 flex items-center justify-center rounded-full bg-background/40 backdrop-blur-sm text-foreground text-xs font-display uppercase tracking-widest animate-pulse"
+                >
+                  Tap
+                </span>
+              )}
+            </button>
           </div>
           <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground text-glow-purple tracking-wide uppercase">
             {t('app.title', language)}
