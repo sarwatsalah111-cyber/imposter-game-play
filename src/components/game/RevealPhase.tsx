@@ -5,6 +5,7 @@ import { t } from '@/lib/i18n';
 import { Eye, MessageCircle, ArrowRight, Skull } from 'lucide-react';
 import { CountdownTimer } from './CountdownTimer';
 import revealLoop from '@/assets/reveal-loop.mp4.asset.json';
+import imposterReveal from '@/assets/imposter-reveal.mp4.asset.json';
 
 export function RevealPhase() {
   const { reveal, language, room, isHost, advancePhase } = useGame();
@@ -131,7 +132,28 @@ export function RevealPhase() {
       >
         {isImposter ? (
           <>
-            <Skull className="w-14 h-14 text-destructive mx-auto mb-4" />
+            <div className="relative mx-auto mb-4 flex items-center justify-center" style={{ width: 140, height: 140 }}>
+              <video
+                src={imposterReveal.url}
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                aria-hidden="true"
+                style={{
+                  width: 140,
+                  height: 140,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  WebkitMaskImage:
+                    'radial-gradient(circle at center, black 32%, rgba(0,0,0,0.7) 55%, transparent 82%)',
+                  maskImage:
+                    'radial-gradient(circle at center, black 32%, rgba(0,0,0,0.7) 55%, transparent 82%)',
+                  filter: 'drop-shadow(0 0 22px hsl(var(--destructive) / 0.55))',
+                }}
+              />
+            </div>
             <p className="font-display text-lg font-bold text-destructive uppercase tracking-wider">{t('game.youAreImposter', language)}</p>
           </>
         ) : (
