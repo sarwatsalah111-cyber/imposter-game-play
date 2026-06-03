@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
@@ -11,11 +11,43 @@ export function RevealPhase() {
   const { reveal, language, room, isHost, advancePhase } = useGame();
   const isImposter = reveal?.role === 'imposter';
   const [showSplash, setShowSplash] = useState(true);
+  const imposterVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 1800);
     return () => clearTimeout(timer);
   }, []);
+
+  // Reliably (re)start the imposter reveal video whenever it mounts/becomes visible
+  useEffect(() => {
+    if (showSplash || !isImposter) return;
+    const v = imposterVideoRef.current;
+    if (!v) return;
+
+    const tryPlay = () => {
+      try {
+        v.muted = true;
+        v.setAttribute('muted', '');
+        v.setAttribute('playsinline', '');
+        v.setAttribute('webkit-playsinline', '');
+        v.currentTime = 0;
+        const p = v.play();
+        if (p && typeof p.then === 'function') p.catch(() => {});
+      } catch {}
+    };
+
+    tryPlay();
+    const onVisible = () => { if (document.visibilityState === 'visible') tryPlay(); };
+    const onInteract = () => tryPlay();
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('touchstart', onInteract, { passive: true, once: true });
+    window.addEventListener('click', onInteract, { once: true });
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('touchstart', onInteract);
+      window.removeEventListener('click', onInteract);
+    };
+  }, [showSplash, isImposter, room?.current_round]);
 
   if (showSplash) {
     return (
@@ -134,6 +166,8 @@ export function RevealPhase() {
           <>
             <div className="relative mx-auto mb-4 flex items-center justify-center" style={{ width: 140, height: 140 }}>
               <video
+                key={`imposter-reveal-${room?.current_round ?? 0}`}
+                ref={imposterVideoRef}
                 src={imposterReveal.url}
                 autoPlay
                 loop
