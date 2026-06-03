@@ -5,7 +5,7 @@ import { useGame } from '@/contexts/GameContext';
 import { t, LANGUAGES, type Language } from '@/lib/i18n';
 import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, BookOpen, ChevronDown, Type } from 'lucide-react';
 import { SpyLogo } from './SpyLogo';
-import spyLogo from '@/assets/spy-logo.gif.asset.json';
+import spyLogo from '@/assets/spy-logo.mp4.asset.json';
 import { startAmbient, stopAmbient, playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
 import { getDefaultSettings, saveDefaultSettings, type DefaultGameSettings, getSoraniFont, setSoraniFont as saveSoraniFont, type SoraniFont } from '@/lib/session';
 import { WordBankModal } from './WordBankManager';
@@ -431,9 +431,12 @@ export function HomeScreen() {
           className="text-center"
         >
           <div className="flex items-center justify-center mb-3">
-            <img
+            <video
               src={spyLogo.url}
-              alt=""
+              autoPlay
+              loop
+              muted
+              playsInline
               aria-hidden="true"
               style={{
                 width: 96,
