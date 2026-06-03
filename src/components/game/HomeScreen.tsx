@@ -330,6 +330,39 @@ export function HomeScreen() {
   const [showWordBank, setShowWordBank] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
 
+  // Logo video autoplay (iOS-safe): try play() on mount + on first user interaction.
+  const logoVideoRef = useRef<HTMLVideoElement>(null);
+  const [logoNeedsTap, setLogoNeedsTap] = useState(false);
+  useEffect(() => {
+    const v = logoVideoRef.current;
+    if (!v) return;
+    v.muted = true;
+    (v as any).playsInline = true;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    const tryPlay = () => {
+      const p = v.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => setLogoNeedsTap(false)).catch(() => setLogoNeedsTap(true));
+      }
+    };
+    tryPlay();
+    const onInteract = () => {
+      tryPlay();
+      window.removeEventListener('touchstart', onInteract);
+      window.removeEventListener('click', onInteract);
+    };
+    window.addEventListener('touchstart', onInteract, { passive: true, once: true });
+    window.addEventListener('click', onInteract, { once: true });
+    const onVis = () => { if (document.visibilityState === 'visible') tryPlay(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.removeEventListener('touchstart', onInteract);
+      window.removeEventListener('click', onInteract);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, []);
+
   // Clear URL param after reading
   useEffect(() => {
     if (joinCode) {
