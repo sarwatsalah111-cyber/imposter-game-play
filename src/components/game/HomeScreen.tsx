@@ -5,7 +5,7 @@ import { useGame } from '@/contexts/GameContext';
 import { t, LANGUAGES, type Language } from '@/lib/i18n';
 import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, BookOpen, ChevronDown, Type } from 'lucide-react';
 import { SpyLogo } from './SpyLogo';
-import spyLogo from '@/assets/spy-logo.png.asset.json';
+import spyLogo from '@/assets/spy-logo.gif.asset.json';
 import { startAmbient, stopAmbient, playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
 import { getDefaultSettings, saveDefaultSettings, type DefaultGameSettings, getSoraniFont, setSoraniFont as saveSoraniFont, type SoraniFont } from '@/lib/session';
 import { WordBankModal } from './WordBankManager';
@@ -431,21 +431,20 @@ export function HomeScreen() {
           className="text-center"
         >
           <div className="flex items-center justify-center mb-3">
-            <div
+            <img
+              src={spyLogo.url}
+              alt=""
               aria-hidden="true"
               style={{
-                width: 72,
-                height: 72,
-                backgroundColor: 'hsl(var(--primary))',
-                WebkitMaskImage: `url(${spyLogo.url})`,
-                maskImage: `url(${spyLogo.url})`,
-                WebkitMaskRepeat: 'no-repeat',
-                maskRepeat: 'no-repeat',
-                WebkitMaskPosition: 'center',
-                maskPosition: 'center',
-                WebkitMaskSize: 'contain',
-                maskSize: 'contain',
-                filter: 'drop-shadow(0 0 16px hsl(var(--primary) / 0.55))',
+                width: 96,
+                height: 96,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                WebkitMaskImage:
+                  'radial-gradient(circle at center, black 38%, rgba(0,0,0,0.7) 55%, transparent 78%)',
+                maskImage:
+                  'radial-gradient(circle at center, black 38%, rgba(0,0,0,0.7) 55%, transparent 78%)',
+                filter: 'drop-shadow(0 0 18px hsl(var(--primary) / 0.55))',
               }}
             />
           </div>
