@@ -5,6 +5,7 @@ import { t } from '@/lib/i18n';
 import { Trophy, ArrowRight, Home, Star, RotateCcw } from 'lucide-react';
 import { playVictory, playGameOver, playClick } from '@/lib/sounds';
 import { LeaderboardScreen } from './LeaderboardScreen';
+import sadImposter from '@/assets/sad-imposter.mp4.asset.json';
 
 function SuspenseCountdown({ onComplete }: { onComplete: () => void }) {
   const [count, setCount] = useState(3);
@@ -123,6 +124,29 @@ export function ResultsPhase() {
       <h2 className="font-display text-lg font-bold text-foreground text-center uppercase tracking-wider text-glow-purple">
         {outcomeLabel}
       </h2>
+
+      {results.caught && (
+        <div className="flex flex-col items-center gap-2">
+          <video
+            src={sadImposter.url}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+            className="w-40 h-40 object-cover rounded-full"
+            style={{
+              WebkitMaskImage: 'radial-gradient(circle at center, black 32%, rgba(0,0,0,0.7) 55%, transparent 82%)',
+              maskImage: 'radial-gradient(circle at center, black 32%, rgba(0,0,0,0.7) 55%, transparent 82%)',
+              filter: 'drop-shadow(0 0 22px hsl(var(--destructive) / 0.55))',
+            }}
+          />
+          <p className="font-display text-sm font-bold text-destructive uppercase tracking-widest text-center">
+            {t('game.imposterCaught', language)}
+          </p>
+        </div>
+      )}
 
       <motion.div
         initial={{ rotateY: 90 }}
