@@ -519,8 +519,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       try {
         await engine.startGame(state.sessionId, state.room.id);
         if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
-        // ── Don't locally set phase — wait for Realtime update so host + players converge ──
         update({ loading: false });
+        // ── Immediate local refresh so host transitions instantly without waiting on Realtime/polling ──
+        const rid = state.room.id;
+        fetchRoom(rid);
+        fetchPlayers(rid);
       } catch (e: unknown) {
         if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
         update({ error: (e as Error).message, loading: false });
