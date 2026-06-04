@@ -149,9 +149,18 @@ Deno.serve(async (req) => {
 
         if (room.phase !== 'lobby' && room.phase !== 'results') return json({ error: 'Cannot start now' }, 400);
 
-        // ── Prevent double-start: reject if already 'starting' ──
+        // ── Prevent double-start: reject if already 'starting' (but auto-recover stale locks > 10s) ──
         if (room.status === 'starting') {
-          return json({ error: 'Game is already starting. Please wait.' }, 409);
+          const lockAge = Date.now() - new Date(room.updated_at).getTime();
+          if (lockAge < 10000) {
+            return json({ error: 'Game is already starting. Please wait.' }, 409);
+          }
+          // Stale lock — clear it so we can re-acquire below
+          await supabase.from('rooms').update({
+            status: room.phase === 'results' ? 'playing' : 'waiting',
+            updated_at: new Date().toISOString(),
+          }).eq('id', room_id);
+          room.status = room.phase === 'results' ? 'playing' : 'waiting';
         }
 
         // ── Step 1: Acquire lock by setting status = 'starting' ──
