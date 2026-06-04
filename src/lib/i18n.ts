@@ -54,6 +54,7 @@ const translations: Record<Language, Record<string, string>> = {
     'game.imposterWas': 'The imposter was:',
     'game.imposterCaught': 'Imposter caught!',
     'game.imposterWins': 'Imposter wins!',
+    'game.imposterEscaped': 'The imposter escaped!',
     'game.round': 'Round',
     'game.nextRound': 'Next Round',
     'game.finish': 'Finish Game',
