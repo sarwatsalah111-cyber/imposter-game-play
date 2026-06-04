@@ -6,6 +6,7 @@ import { Trophy, ArrowRight, Home, Star, RotateCcw } from 'lucide-react';
 import { playVictory, playGameOver, playClick } from '@/lib/sounds';
 import { LeaderboardScreen } from './LeaderboardScreen';
 import sadImposter from '@/assets/sad-imposter.mp4.asset.json';
+import imposterEscaped from '@/assets/imposter-escaped.mp4.asset.json';
 
 function SuspenseCountdown({ onComplete }: { onComplete: () => void }) {
   const [count, setCount] = useState(3);
@@ -144,6 +145,29 @@ export function ResultsPhase() {
           />
           <p className="font-display text-sm font-bold text-destructive uppercase tracking-widest text-center">
             {t('game.imposterCaught', language)}
+          </p>
+        </div>
+      )}
+
+      {!results.caught && (
+        <div className="flex flex-col items-center gap-2">
+          <video
+            src={imposterEscaped.url}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+            className="w-40 h-40 object-cover rounded-full"
+            style={{
+              WebkitMaskImage: 'radial-gradient(circle at center, black 32%, rgba(0,0,0,0.7) 55%, transparent 82%)',
+              maskImage: 'radial-gradient(circle at center, black 32%, rgba(0,0,0,0.7) 55%, transparent 82%)',
+              filter: 'drop-shadow(0 0 22px hsl(var(--accent) / 0.55))',
+            }}
+          />
+          <p className="font-display text-sm font-bold text-accent uppercase tracking-widest text-center">
+            {t('game.imposterEscaped', language)}
           </p>
         </div>
       )}
