@@ -114,6 +114,18 @@ Deno.serve(async (req) => {
           .from('room_players').select('*', { count: 'exact', head: true }).eq('room_id', room.id);
         if ((count || 0) >= room.max_players) return json({ error: 'Room is full' }, 400);
 
+        // ── Duplicate-nickname guard (case-insensitive, trimmed) ──
+        const normName = (n: string) =>
+          n.normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
+        const normalized = normName(nickname);
+        if (!normalized) return json({ error: 'Nickname required' }, 400);
+        const { data: roster } = await supabase
+          .from('room_players').select('session_id, nickname').eq('room_id', room.id);
+        const taken = (roster || []).some(
+          (p) => p.session_id !== session_id && normName(p.nickname) === normalized,
+        );
+        if (taken) return json({ error: 'NICKNAME_TAKEN' }, 409);
+
         const { data: existing } = await supabase
           .from('room_players').select('id').eq('room_id', room.id).eq('session_id', session_id).maybeSingle();
         if (existing) {
