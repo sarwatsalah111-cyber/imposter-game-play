@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { supabase } from '@/integrations/supabase/client';
 import { getSessionId, getNickname, setNickname as saveNickname, saveRoomContext, getRoomContext, clearRoomContext } from '@/lib/session';
 import { useGameEngine } from '@/hooks/useGameEngine';
-import type { Language } from '@/lib/i18n';
+import { t, type Language } from '@/lib/i18n';
 import type { Room, RoomPlayer, GamePhase, RevealData } from '@/lib/game-types';
 
 interface SpokeStatus {
