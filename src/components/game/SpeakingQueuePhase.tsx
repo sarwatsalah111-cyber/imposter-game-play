@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
@@ -13,6 +13,8 @@ export function SpeakingQueuePhase() {
   const [speaking, setSpeaking] = useState(false);
   const [justSpoke, setJustSpoke] = useState(false);
   const lastSpokeRef = useRef(0);
+  const reminderTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const autoSkippedRef = useRef<string | null>(null);
 
   const playerOrder = spokeStatus?.player_order || activePlayers.map(p => p.session_id);
   const currentTurnIndex = spokeStatus?.current_turn_index ?? 0;
@@ -25,6 +27,11 @@ export function SpeakingQueuePhase() {
   const currentSpeakingRound = Math.floor(currentTurnIndex / playerOrder.length) + 1;
   const isMyTurn = currentTurnPlayer === sessionId;
 
+  const clearReminderTimers = useCallback(() => {
+    reminderTimersRef.current.forEach((id) => clearTimeout(id));
+    reminderTimersRef.current = [];
+  }, []);
+
   const handleSpoke = useCallback(async () => {
     const now = Date.now();
     if (now - lastSpokeRef.current < 2000) return;
@@ -32,6 +39,7 @@ export function SpeakingQueuePhase() {
 
     lastSpokeRef.current = now;
     setSpeaking(true);
+    clearReminderTimers();
     vibrate(50);
     playClick();
 
@@ -56,7 +64,42 @@ export function SpeakingQueuePhase() {
     } finally {
       setSpeaking(false);
     }
-  }, [markSpoke, speaking, language]);
+  }, [markSpoke, speaking, language, clearReminderTimers]);
+
+  // ── Vibration reminders + 12s auto-skip when it's my turn ──
+  useEffect(() => {
+    clearReminderTimers();
+    if (!isMyTurn || allDone || !currentTurnPlayer) return;
+
+    const turnKey = `${currentTurnPlayer}-${currentTurnIndex}`;
+
+    // Buzz #1 immediately, #2 at +3s, #3 at +6s
+    vibrate([60, 80, 60]);
+    reminderTimersRef.current.push(
+      setTimeout(() => vibrate([60, 80, 60]), 3000),
+      setTimeout(() => vibrate([60, 80, 60]), 6000),
+    );
+
+    // Auto-skip at +12s
+    reminderTimersRef.current.push(
+      setTimeout(async () => {
+        if (autoSkippedRef.current === turnKey) return;
+        autoSkippedRef.current = turnKey;
+        vibrate([120, 60, 120]);
+        try {
+          await skipTurn(sessionId);
+          toast({
+            title: t('game.autoSkipped', language),
+            variant: 'destructive',
+          });
+        } catch {
+          // server may have already advanced; ignore
+        }
+      }, 12000),
+    );
+
+    return clearReminderTimers;
+  }, [isMyTurn, currentTurnPlayer, currentTurnIndex, allDone, sessionId, language, skipTurn, clearReminderTimers]);
 
   return (
     <motion.div
