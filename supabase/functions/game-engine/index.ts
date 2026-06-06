@@ -868,7 +868,9 @@ Deno.serve(async (req) => {
         const { data: room } = await supabase
           .from('rooms').select('phase, current_round, spoke_rounds, host_session_id').eq('id', room_id).single();
         if (!room) return json({ error: 'Room not found' }, 404);
-        if (room.host_session_id !== session_id) return json({ error: 'Only host' }, 403);
+        if (room.host_session_id !== session_id && session_id !== target_session_id) {
+          return json({ error: 'Only host or self' }, 403);
+        }
         if (room.phase !== 'discussion') return json({ error: 'Not in discussion phase' }, 400);
 
         // Verify the target is the current speaker

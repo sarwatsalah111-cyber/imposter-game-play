@@ -1,48 +1,51 @@
-# Prevent duplicate nicknames in a room
+# Vibration reminders + 12s auto-skip on speaking turn
 
-Two players with the same display name in one room confuses voting and the speaking queue. The server should refuse it, and the client should show a clear, localized error.
+When it becomes a player's turn in the speaking queue, their phone buzzes 3 times (3s apart). If they still haven't pressed **I Spoke** after 12s, the turn is automatically skipped so the game keeps flowing.
 
-## Server: `supabase/functions/game-engine/index.ts`
+## Timeline (per turn, on the current speaker's device)
 
-Add a shared helper:
+```text
+t=0s   turn starts  → vibrate #1 (short triple buzz)
+t=3s                → vibrate #2
+t=6s                → vibrate #3
+t=12s  no tap yet   → auto-skip self → next player
+```
+
+Vibrations stop immediately if the player taps **I Spoke**, leaves the turn (turn advances), the phase changes, or the player goes offline.
+
+## Client: `src/components/game/SpeakingQueuePhase.tsx`
+
+- Add a `useEffect` keyed on `currentTurnPlayer`, `isMyTurn`, and `allDone`.
+- On `isMyTurn === true`:
+  - Fire `vibrate([60, 80, 60])` immediately, then again at +3s and +6s using `setTimeout` refs.
+  - Start a `setTimeout` at +12s that calls `skipTurn(sessionId)` and shows a destructive toast (`t('game.autoSkipped', language)` — new key).
+- Cleanup clears all timers when the effect re-runs or unmounts. Also clear them inside `handleSpoke` success so a fast tap never triggers a late buzz.
+- Add a tiny inline countdown badge near the "Your Turn" chip (`Xs`) so the player sees why they're being nudged. Optional but cheap.
+
+## Server: `supabase/functions/game-engine/index.ts` — `skip-turn` case
+
+Currently restricted to host. Allow self-skip too:
 
 ```ts
-const normalizeName = (n: string) =>
-  n.normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
+if (room.host_session_id !== session_id && session_id !== target_session_id) {
+  return json({ error: 'Only host or self' }, 403);
+}
 ```
 
-### `join-room` case
-Before the insert (and before the "existing session rejoin" rename), query other players in the room and reject if another `session_id` already uses the same normalized nickname:
+No other logic changes — the existing "must be the current speaker" check still protects the queue.
 
-- Fetch `session_id, nickname` for `room_id = room.id`.
-- If any row with a different `session_id` matches `normalizeName(nickname)`, return `409 { error: 'NICKNAME_TAKEN' }`.
-- Applies to both branches: new join AND the rejoin path that updates `nickname` (so a returning session can't rename into a taken name).
+## i18n: `src/lib/i18n.ts`
 
-### `create-room` case
-The host is the only player at creation, so no collision is possible — no change needed.
+Add one key in all four languages:
 
-### Optional: `update-settings` / nickname changes mid-lobby
-Not currently exposed, so skip unless we add a rename action later.
-
-## Database: defense in depth
-
-Add a partial unique index so the rule holds even if a future code path forgets to check:
-
-```sql
-CREATE UNIQUE INDEX room_players_unique_nickname_per_room
-ON public.room_players (room_id, lower(btrim(nickname)));
-```
-
-This is created via a new migration. Existing rows are fine (each session is unique today); if the index creation fails on legacy duplicates we'll add a one-time cleanup in the same migration.
-
-## Client: `src/contexts/GameContext.tsx` + `src/lib/i18n.ts`
-
-- Map the `NICKNAME_TAKEN` error from `engine.joinRoom` to a friendly toast/inline error using a new i18n key `errors.nicknameTaken`:
-  - English: "That name is already used in this room. Pick another."
-  - Kurdish Sorani: "ئەو ناوە لەم ژوورەدا بەکارهاتووە. ناوێکی تر هەڵبژێرە."
-  - Arabic: "هذا الاسم مستخدم بالفعل في الغرفة. اختر اسمًا آخر."
-- Keep `state.loading = false` and surface the message through the existing error pathway so the join screen lets the user edit the nickname and retry.
+- `game.autoSkipped`
+  - EN: "Time's up — your turn was skipped."
+  - AR: "انتهى الوقت — تم تخطّي دورك."
+  - KU Sorani: "کاتت تەواو بوو — نۆرەکەت تێپەڕاند."
+  - KU Kurmancî: "Wext qediya — dora te hat derbaskirin."
 
 ## Out of scope
-- Renaming flows for already-joined players.
-- Cross-room uniqueness (names are only restricted within a single room).
+
+- Changing the host's existing manual skip button for offline players (still works).
+- Per-room configurable skip timeout — hard-coded to 12s as requested.
+- Sound cue alongside vibration (vibration only).
