@@ -493,7 +493,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         });
       } catch (e: unknown) {
         if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
-        update({ error: (e as Error).message, loading: false });
+        const raw = (e as Error).message || '';
+        const msg = raw.includes('NICKNAME_TAKEN')
+          ? t('errors.nicknameTaken', state.language)
+          : raw;
+        update({ error: msg, loading: false });
       }
     },
     updateSettings: async (settings) => {
