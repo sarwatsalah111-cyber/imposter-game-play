@@ -104,19 +104,13 @@ export function RevealPhase() {
   const roomLang = room?.language || 'KU_CENTRAL';
   const primaryWord = langMap[roomLang] || reveal?.word || '';
 
-  const langLabels: Record<string, string> = {
-    'KU_CENTRAL': 'کوردی سۆرانی',
-    'KU_KURMANJI': 'Kurmancî',
-    'EN': 'English',
-    'AR': 'العربية',
-  };
-  const otherLangs = Object.entries(langLabels)
-    .filter(([code]) => code !== roomLang)
-    .map(([code, label]) => ({
-      label,
-      word: code === 'KU_CENTRAL' ? (reveal?.word || '') : (translations[code] || ''),
-    }))
-    .filter(e => e.word);
+  // Fit text size to word length so long words don't overflow
+  const wordLen = primaryWord.length;
+  const wordSizeClass =
+    wordLen <= 8 ? 'text-4xl' :
+    wordLen <= 14 ? 'text-3xl' :
+    wordLen <= 20 ? 'text-2xl' :
+    'text-xl';
 
   return (
     <motion.div
@@ -196,17 +190,7 @@ export function RevealPhase() {
             <p className="font-display text-base font-bold text-foreground mb-4 uppercase tracking-wider">{t('game.youAreNormal', language)}</p>
             <div className="spooky-inner border border-border rounded-lg p-4">
               <p className="text-muted-foreground text-xs mb-1 font-display uppercase tracking-widest">{t('game.secretWord', language)}</p>
-              <p className="font-display text-3xl font-bold text-accent text-glow-gold mt-2">{primaryWord}</p>
-              {otherLangs.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-border/40 space-y-1">
-                  {otherLangs.map(({ label, word }) => (
-                    <p key={label} className="text-muted-foreground/60 text-sm font-display">
-                      <span className="text-muted-foreground/40 text-xs">{label}:</span>{' '}
-                      {word}
-                    </p>
-                  ))}
-                </div>
-              )}
+              <p className={`font-display ${wordSizeClass} font-bold text-accent text-glow-gold mt-2 break-words leading-tight`}>{primaryWord}</p>
             </div>
           </>
         )}
