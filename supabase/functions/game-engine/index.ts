@@ -176,11 +176,16 @@ Deno.serve(async (req) => {
         }
 
         // ── Step 1: Acquire lock by setting status = 'starting' ──
-        const { error: lockErr } = await supabase.from('rooms').update({
+        const { data: lockRows, error: lockErr } = await supabase.from('rooms').update({
           status: 'starting', updated_at: new Date().toISOString(),
-        }).eq('id', room_id).eq('status', room.status); // optimistic lock on current status
+        }).eq('id', room_id).eq('status', room.status).select('id'); // optimistic lock
         if (lockErr) {
-          return json({ error: 'Failed to acquire start lock. Please retry.' }, 500);
+          console.error('start-game lock error:', lockErr);
+          return json({ error: `Failed to acquire start lock: ${lockErr.message}` }, 500);
+        }
+        if (!lockRows || lockRows.length === 0) {
+          // Another request grabbed the lock first — treat as already-starting
+          return json({ error: 'Game is already starting. Please wait.' }, 409);
         }
 
         try {
