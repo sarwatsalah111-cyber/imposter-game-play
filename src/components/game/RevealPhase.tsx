@@ -104,19 +104,13 @@ export function RevealPhase() {
   const roomLang = room?.language || 'KU_CENTRAL';
   const primaryWord = langMap[roomLang] || reveal?.word || '';
 
-  const langLabels: Record<string, string> = {
-    'KU_CENTRAL': 'کوردی سۆرانی',
-    'KU_KURMANJI': 'Kurmancî',
-    'EN': 'English',
-    'AR': 'العربية',
-  };
-  const otherLangs = Object.entries(langLabels)
-    .filter(([code]) => code !== roomLang)
-    .map(([code, label]) => ({
-      label,
-      word: code === 'KU_CENTRAL' ? (reveal?.word || '') : (translations[code] || ''),
-    }))
-    .filter(e => e.word);
+  // Fit text size to word length so long words don't overflow
+  const wordLen = primaryWord.length;
+  const wordSizeClass =
+    wordLen <= 8 ? 'text-4xl' :
+    wordLen <= 14 ? 'text-3xl' :
+    wordLen <= 20 ? 'text-2xl' :
+    'text-xl';
 
   return (
     <motion.div
