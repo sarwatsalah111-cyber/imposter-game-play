@@ -86,42 +86,42 @@
 
 @layer base {
   :root {
-    --background: 270 45% 4%;
-    --foreground: 270 20% 95%;
+    --background: 270 90% 5%;
+    --foreground: 270 60% 97%;
 
-    --card: 270 38% 11%;
-    --card-foreground: 270 20% 95%;
+    --card: 275 85% 12%;
+    --card-foreground: 270 60% 97%;
 
-    --popover: 270 38% 11%;
-    --popover-foreground: 270 20% 95%;
+    --popover: 275 85% 12%;
+    --popover-foreground: 270 60% 97%;
 
-    --primary: 280 80% 58%;
-    --primary-foreground: 270 20% 98%;
+    --primary: 285 100% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 270 32% 18%;
-    --secondary-foreground: 270 20% 85%;
+    --secondary: 275 80% 22%;
+    --secondary-foreground: 270 60% 95%;
 
-    --muted: 270 28% 14%;
-    --muted-foreground: 270 15% 60%;
+    --muted: 275 70% 16%;
+    --muted-foreground: 275 40% 70%;
 
-    --accent: 45 100% 58%;
-    --accent-foreground: 270 45% 6%;
+    --accent: 45 100% 55%;
+    --accent-foreground: 270 90% 6%;
 
-    --destructive: 0 78% 52%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 100% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 270 40% 30%;
-    --input: 270 35% 15%;
-    --ring: 280 80% 58%;
+    --border: 280 90% 45%;
+    --input: 275 80% 18%;
+    --ring: 285 100% 60%;
 
     --radius: 0.75rem;
 
-    --neon-purple: 280 75% 55%;
-    --neon-gold: 45 95% 55%;
-    --neon-red: 0 85% 55%;
-    --neon-orange: 30 95% 55%;
+    --neon-purple: 285 100% 60%;
+    --neon-gold: 48 100% 55%;
+    --neon-red: 0 100% 55%;
+    --neon-orange: 25 100% 55%;
     --neon-blue: 210 100% 60%;
-    --neon-green: 160 100% 45%;
+    --neon-green: 150 100% 50%;
 
     --sidebar-background: 270 40% 8%;
     --sidebar-foreground: 270 25% 85%;
@@ -169,61 +169,35 @@
 }
 
 @layer utilities {
-  /* Spooky panel – glassmorphism container */
+  /* Spooky panel – solid (no glass) */
   .spooky-panel {
-    background: rgba(120, 60, 180, 0.14);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: hsl(275 85% 10%);
     border-radius: 20px;
-    border: 1px solid rgba(160, 100, 240, 0.22);
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.45),
-      inset 0 1px 0 rgba(180, 130, 255, 0.25),
-      inset 0 -1px 0 rgba(140, 80, 220, 0.06),
-      inset 0 0 20px 10px rgba(120, 60, 180, 0.04);
+    border: 2px solid hsl(285 100% 55%);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     position: relative;
     overflow: hidden;
   }
 
   .spooky-panel::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(180, 130, 255, 0.55), transparent);
+    content: none;
   }
 
   .spooky-panel::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 1px;
-    height: 100%;
-    background: linear-gradient(180deg, rgba(180, 130, 255, 0.45), transparent, rgba(140, 80, 220, 0.15));
-    pointer-events: none;
+    content: none;
   }
 
-  /* Spooky inner panel – subtle glass */
+  /* Spooky inner panel – solid */
   .spooky-inner {
-    background: rgba(100, 45, 160, 0.12);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(140, 80, 220, 0.18);
+    background: hsl(278 80% 14%);
+    border: 2px solid hsl(285 100% 50%);
     border-radius: 16px;
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(160, 100, 240, 0.18);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .spooky-inner:hover {
-    border-color: rgba(160, 100, 240, 0.32);
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(160, 100, 240, 0.28),
-      inset 0 0 20px 5px rgba(120, 60, 180, 0.04);
+    border-color: hsl(285 100% 65%);
+    box-shadow: 0 8px 32px hsl(285 100% 50% / 0.4);
   }
 
   /* Spider web corner decoration */
@@ -240,32 +214,21 @@
     pointer-events: none;
   }
 
-  /* Glassmorphism base */
+  /* Solid base (was glass) */
   .glass {
-    background: rgba(110, 50, 170, 0.14);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(160, 100, 240, 0.2);
+    background: hsl(275 85% 10%);
+    border: 2px solid hsl(285 100% 55%);
     border-radius: 20px;
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(180, 130, 255, 0.22),
-      inset 0 -1px 0 rgba(140, 80, 220, 0.06),
-      inset 0 0 20px 10px rgba(120, 60, 180, 0.04);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   }
 
-  /* Spooky button styles — glassmorphism + snappy feedback */
+  /* Spooky button — solid saturated */
   .spooky-btn {
-    background: rgba(130, 65, 200, 0.2);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(160, 100, 240, 0.28);
+    background: hsl(285 100% 45%);
+    border: 2px solid hsl(285 100% 65%);
     border-radius: 16px;
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(180, 130, 255, 0.28),
-      inset 0 -1px 0 rgba(140, 80, 220, 0.06);
-    color: hsl(270 30% 95%);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    color: hsl(0 0% 100%);
     font-family: var(--font-display);
     font-weight: 700;
     text-transform: uppercase;
@@ -279,29 +242,18 @@
     overflow: hidden;
   }
   .spooky-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(180, 130, 255, 0.5), transparent);
+    content: none;
   }
   .spooky-btn:hover {
-    background: rgba(140, 75, 210, 0.32);
-    border-color: rgba(180, 130, 255, 0.4);
-    box-shadow:
-      0 8px 32px rgba(120, 60, 180, 0.3),
-      inset 0 1px 0 rgba(180, 130, 255, 0.35),
-      inset 0 0 20px 10px rgba(140, 80, 200, 0.06);
+    background: hsl(285 100% 55%);
+    border-color: hsl(285 100% 75%);
+    box-shadow: 0 8px 32px hsl(285 100% 50% / 0.6);
     transform: translateY(-2px) scale(1.02) translateZ(0);
   }
   .spooky-btn:active {
     transform: translateY(1px) scale(0.97) translateZ(0);
-    background: rgba(110, 50, 170, 0.15);
-    box-shadow:
-      0 2px 8px rgba(0, 0, 0, 0.45),
-      inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    background: hsl(285 100% 38%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     transition-duration: 0.08s;
   }
   .spooky-btn:disabled {
@@ -311,86 +263,75 @@
   }
 
   .spooky-btn-gold {
-    background: rgba(255, 190, 30, 0.16);
-    border: 1px solid rgba(255, 200, 50, 0.32);
-    color: hsl(45 95% 65%);
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(255, 200, 50, 0.3),
-      inset 0 -1px 0 rgba(255, 180, 20, 0.06);
+    background: hsl(48 100% 50%);
+    border: 2px solid hsl(48 100% 70%);
+    color: hsl(270 90% 8%);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   }
   .spooky-btn-gold:hover {
-    background: rgba(255, 190, 30, 0.28);
-    border-color: rgba(255, 200, 50, 0.5);
-    box-shadow:
-      0 8px 32px rgba(255, 190, 30, 0.22),
-      inset 0 1px 0 rgba(255, 200, 50, 0.4),
-      inset 0 0 20px 10px rgba(255, 190, 30, 0.05);
+    background: hsl(48 100% 60%);
+    border-color: hsl(48 100% 80%);
+    box-shadow: 0 8px 32px hsl(48 100% 50% / 0.6);
     transform: translateY(-2px) scale(1.02) translateZ(0);
   }
   .spooky-btn-gold:active {
     transform: translateY(1px) scale(0.97) translateZ(0);
-    background: rgba(255, 190, 30, 0.1);
+    background: hsl(48 100% 42%);
     transition-duration: 0.08s;
   }
 
   .spooky-btn-danger {
-    background: rgba(200, 40, 40, 0.18);
-    border: 1px solid rgba(255, 70, 70, 0.28);
-    box-shadow:
-      0 4px 16px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 rgba(255, 80, 80, 0.22);
+    background: hsl(0 100% 50%);
+    border: 2px solid hsl(0 100% 70%);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   }
   .spooky-btn-danger:hover {
-    background: rgba(220, 50, 50, 0.28);
-    border-color: rgba(255, 80, 80, 0.42);
-    box-shadow:
-      0 8px 32px rgba(220, 50, 50, 0.22),
-      inset 0 1px 0 rgba(255, 80, 80, 0.32),
-      inset 0 0 20px 10px rgba(220, 50, 50, 0.04);
+    background: hsl(0 100% 58%);
+    border-color: hsl(0 100% 80%);
+    box-shadow: 0 8px 32px hsl(0 100% 50% / 0.6);
     transform: translateY(-2px) scale(1.02) translateZ(0);
   }
   .spooky-btn-danger:active {
     transform: translateY(1px) scale(0.97) translateZ(0);
-    background: rgba(200, 40, 40, 0.12);
+    background: hsl(0 100% 42%);
     transition-duration: 0.08s;
   }
 
   .spooky-input {
-    background: hsl(270 40% 8%);
-    border: 2px solid hsl(270 35% 25%);
+    background: hsl(275 85% 10%);
+    border: 2px solid hsl(285 100% 50%);
     border-radius: 0.75rem;
-    color: hsl(270 30% 92%);
+    color: hsl(270 60% 97%);
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .spooky-input:focus {
-    border-color: hsl(280 75% 55%);
-    box-shadow: 0 0 0 3px hsl(280 75% 55% / 0.15), 0 0 12px hsl(280 75% 55% / 0.2);
+    border-color: hsl(285 100% 65%);
+    box-shadow: 0 0 0 3px hsl(285 100% 60% / 0.4), 0 0 16px hsl(285 100% 60% / 0.5);
     outline: none;
   }
   .spooky-input::placeholder {
-    color: hsl(270 15% 40%);
+    color: hsl(275 40% 55%);
   }
 
   /* Glow effects */
   .glow-purple {
-    box-shadow: 0 0 20px hsl(280 75% 55% / 0.3), 0 0 60px hsl(280 75% 55% / 0.1);
+    box-shadow: 0 0 24px hsl(285 100% 60% / 0.6), 0 0 60px hsl(285 100% 60% / 0.3);
   }
   .glow-gold {
-    box-shadow: 0 0 20px hsl(45 95% 55% / 0.3), 0 0 60px hsl(45 95% 55% / 0.1);
+    box-shadow: 0 0 24px hsl(48 100% 55% / 0.6), 0 0 60px hsl(48 100% 55% / 0.3);
   }
   .glow-red {
-    box-shadow: 0 0 20px hsl(0 85% 55% / 0.3), 0 0 60px hsl(0 85% 55% / 0.1);
+    box-shadow: 0 0 24px hsl(0 100% 55% / 0.6), 0 0 60px hsl(0 100% 55% / 0.3);
   }
   .glow-green {
-    box-shadow: 0 0 20px hsl(160 100% 45% / 0.3), 0 0 60px hsl(160 100% 45% / 0.1);
+    box-shadow: 0 0 24px hsl(150 100% 50% / 0.6), 0 0 60px hsl(150 100% 50% / 0.3);
   }
 
   .text-glow-purple {
-    text-shadow: 0 0 20px hsl(280 75% 55% / 0.6), 0 0 40px hsl(280 75% 55% / 0.3);
+    text-shadow: 0 0 20px hsl(285 100% 65% / 0.9), 0 0 40px hsl(285 100% 60% / 0.6);
   }
   .text-glow-gold {
-    text-shadow: 0 0 20px hsl(45 95% 55% / 0.6), 0 0 40px hsl(45 95% 55% / 0.3);
+    text-shadow: 0 0 20px hsl(48 100% 60% / 0.9), 0 0 40px hsl(48 100% 55% / 0.6);
   }
 
   /* Scratched texture overlay */
@@ -417,31 +358,24 @@
     background: radial-gradient(ellipse at center, transparent 40%, hsl(270 50% 3%) 100%);
   }
 
-  /* Smooth icon buttons – glass */
+  /* Smooth icon buttons – solid */
   .icon-btn {
     @apply w-10 h-10 flex items-center justify-center transition-all duration-200;
-    background: rgba(120, 60, 180, 0.14);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(160, 100, 240, 0.2);
+    background: hsl(275 85% 14%);
+    border: 2px solid hsl(285 100% 55%);
     border-radius: 14px;
-    box-shadow:
-      0 4px 12px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(180, 130, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
     transform: translateZ(0);
   }
   .icon-btn:hover {
-    background: rgba(140, 75, 210, 0.25);
-    border-color: rgba(180, 130, 255, 0.35);
-    box-shadow:
-      0 8px 24px rgba(120, 60, 180, 0.22),
-      inset 0 1px 0 rgba(180, 130, 255, 0.3),
-      inset 0 0 15px 5px rgba(120, 60, 180, 0.04);
+    background: hsl(285 100% 45%);
+    border-color: hsl(285 100% 75%);
+    box-shadow: 0 8px 24px hsl(285 100% 50% / 0.5);
     transform: translateY(-1px) scale(1.05) translateZ(0);
   }
   .icon-btn:active {
     transform: scale(0.92) translateZ(0);
-    background: rgba(100, 45, 160, 0.1);
+    background: hsl(285 100% 38%);
     transition-duration: 0.05s;
   }
 }
