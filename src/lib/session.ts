@@ -3,6 +3,27 @@ const NICKNAME_KEY = 'imposter_nickname';
 const SETTINGS_KEY = 'imposter_default_settings';
 const ROOM_CONTEXT_KEY = 'imposter_room_context';
 const SORANI_FONT_KEY = 'imposter_sorani_font';
+const ONBOARDING_KEY = 'imposter_onboarding_complete';
+const GENDER_KEY = 'imposter_gender';
+
+export type Gender = 'male' | 'female' | 'other';
+
+export function isOnboardingComplete(): boolean {
+  return localStorage.getItem(ONBOARDING_KEY) === '1';
+}
+
+export function setOnboardingComplete(): void {
+  localStorage.setItem(ONBOARDING_KEY, '1');
+}
+
+export function getGender(): Gender | null {
+  const v = localStorage.getItem(GENDER_KEY);
+  return v === 'male' || v === 'female' || v === 'other' ? v : null;
+}
+
+export function setGender(g: Gender): void {
+  localStorage.setItem(GENDER_KEY, g);
+}
 
 export type SoraniFont = 'peshang' | 'zana' | 'k24' | 'kobane' | 'peshmerge' | 'rabar017' | 'rabar018' | 'rabar026' | 'rabar032' | 'mahansaria';
 
