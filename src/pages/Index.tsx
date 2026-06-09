@@ -3,8 +3,9 @@ import { useGame, GameProvider } from '@/contexts/GameContext';
 import { HomeScreen } from '@/components/game/HomeScreen';
 import { LobbyScreen } from '@/components/game/LobbyScreen';
 import { GameScreen } from '@/components/game/GameScreen';
+import { OnboardingFlow } from '@/components/game/OnboardingFlow';
 import { getDir } from '@/lib/i18n';
-import { getSoraniFont } from '@/lib/session';
+import { getSoraniFont, isOnboardingComplete } from '@/lib/session';
 import { useState, useEffect } from 'react';
 
 function GameContent() {
@@ -13,6 +14,7 @@ function GameContent() {
 
   const isSorani = language === 'KU_CENTRAL';
   const [soraniFont, setSoraniFont] = useState(getSoraniFont());
+  const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingComplete());
 
   // Listen for font changes via storage event or re-render
   useEffect(() => {
@@ -25,7 +27,8 @@ function GameContent() {
 
   return (
     <div dir={dir} className={`min-h-screen bg-background ${fontClass}`}>
-      {!room && <HomeScreen />}
+      {showOnboarding && !room && <OnboardingFlow onComplete={() => setShowOnboarding(false)} />}
+      {!showOnboarding && !room && <HomeScreen />}
       {room && phase === 'lobby' && <LobbyScreen />}
       {room && phase !== 'lobby' && <GameScreen />}
     </div>
