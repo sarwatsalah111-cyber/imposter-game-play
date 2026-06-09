@@ -1,51 +1,46 @@
-# Vibration reminders + 12s auto-skip on speaking turn
+## First-Time Onboarding Flow
 
-When it becomes a player's turn in the speaking queue, their phone buzzes 3 times (3s apart). If they still haven't pressed **I Spoke** after 12s, the turn is automatically skipped so the game keeps flowing.
+Add a one-time onboarding wizard that shows the first time a user opens the game, then never again.
 
-## Timeline (per turn, on the current speaker's device)
+### Detection
+- New localStorage key `imposter_onboarding_complete` (boolean).
+- In `Index.tsx` (or a new wrapper), if the key is missing AND `room` is null → render `<OnboardingFlow />` instead of `HomeScreen`. After finish → set the key and unmount.
 
-```text
-t=0s   turn starts  → vibrate #1 (short triple buzz)
-t=3s                → vibrate #2
-t=6s                → vibrate #3
-t=12s  no tap yet   → auto-skip self → next player
-```
+### Component: `src/components/game/OnboardingFlow.tsx`
+A full-screen multi-step wizard with progress dots, Back, Skip, and Next buttons. Uses existing `spooky-panel` styling, framer-motion transitions between steps.
 
-Vibrations stop immediately if the player taps **I Spoke**, leaves the turn (turn advances), the phase changes, or the player goes offline.
+**Step 1 — Language**
+- Title + 4 language cards (EN, AR, KU_CENTRAL, KU_KURMANJI) reusing `LANGUAGES` from `i18n.ts`.
+- Selecting one calls `setLanguage(lang)` from `GameContext` immediately, so steps 2+ render in that language (and `dir` flips via `Index.tsx`).
+- Next button enabled after a selection.
 
-## Client: `src/components/game/SpeakingQueuePhase.tsx`
+**Step 2 — Name & Gender**
+- Localized prompt for nickname (text input → `setNickname`).
+- Gender picker: 3 selectable icon cards — Male (♂), Female (♀), Other/Neutral (🧑). Saved to localStorage key `imposter_gender` (new helper in `src/lib/session.ts`).
+- Next disabled until nickname is non-empty and a gender is picked.
 
-- Add a `useEffect` keyed on `currentTurnPlayer`, `isMyTurn`, and `allDone`.
-- On `isMyTurn === true`:
-  - Fire `vibrate([60, 80, 60])` immediately, then again at +3s and +6s using `setTimeout` refs.
-  - Start a `setTimeout` at +12s that calls `skipTurn(sessionId)` and shows a destructive toast (`t('game.autoSkipped', language)` — new key).
-- Cleanup clears all timers when the effect re-runs or unmounts. Also clear them inside `handleSpoke` success so a fast tap never triggers a late buzz.
-- Add a tiny inline countdown badge near the "Your Turn" chip (`Xs`) so the player sees why they're being nudged. Optional but cheap.
+**Step 3 — How to Play**
+- Reuse the 5 steps already defined in `HowToPlayModal` (`howto.step1Title/Desc` … `step5Title/Desc`).
+- One step per screen with icon, title, description.
+- Buttons: Previous (back through how-to substeps, then back to step 2), Skip (jump straight to finish), Next (advance; on the last how-to screen Next becomes "Start").
 
-## Server: `supabase/functions/game-engine/index.ts` — `skip-turn` case
+**Step 4 — Finish**
+- Mark onboarding complete in localStorage and unmount; user lands on `HomeScreen` (lobby entry).
 
-Currently restricted to host. Allow self-skip too:
+### i18n additions (all 4 languages) in `src/lib/i18n.ts`
+- `onboarding.welcome`, `onboarding.chooseLanguage`
+- `onboarding.yourName`, `onboarding.namePlaceholder`, `onboarding.chooseGender`, `onboarding.male`, `onboarding.female`, `onboarding.other`
+- `onboarding.next`, `onboarding.previous`, `onboarding.skip`, `onboarding.start`
+- `onboarding.howToTitle` (reuses existing howto.* strings for content)
 
-```ts
-if (room.host_session_id !== session_id && session_id !== target_session_id) {
-  return json({ error: 'Only host or self' }, 403);
-}
-```
+### Session helpers (`src/lib/session.ts`)
+- `isOnboardingComplete()`, `setOnboardingComplete()`
+- `getGender()`, `setGender(g)` with type `Gender = 'male' | 'female' | 'other'`
 
-No other logic changes — the existing "must be the current speaker" check still protects the queue.
+### Files touched
+- New: `src/components/game/OnboardingFlow.tsx`
+- Edited: `src/pages/Index.tsx` (conditionally render OnboardingFlow), `src/lib/session.ts` (new helpers), `src/lib/i18n.ts` (new keys × 4 languages)
 
-## i18n: `src/lib/i18n.ts`
-
-Add one key in all four languages:
-
-- `game.autoSkipped`
-  - EN: "Time's up — your turn was skipped."
-  - AR: "انتهى الوقت — تم تخطّي دورك."
-  - KU Sorani: "کاتت تەواو بوو — نۆرەکەت تێپەڕاند."
-  - KU Kurmancî: "Wext qediya — dora te hat derbaskirin."
-
-## Out of scope
-
-- Changing the host's existing manual skip button for offline players (still works).
-- Per-room configurable skip timeout — hard-coded to 12s as requested.
-- Sound cue alongside vibration (vibration only).
+### Notes
+- Gender is stored but not yet used elsewhere; surfaced for future avatar/personalization. Confirm if you'd like it shown next to the nickname in the lobby now too.
+- Onboarding never re-shows; users can still access language/settings/how-to from the HomeScreen header as today.
