@@ -605,8 +605,8 @@ Deno.serve(async (req) => {
         }
 
         if (correct) {
-          // Award +3 to imposter, skip voting, go to results
-          const pointsAwarded: Record<string, number> = { [session_id]: 3 };
+          // Award +4 to imposter, skip voting, go to results
+          const pointsAwarded: Record<string, number> = { [session_id]: 4 };
 
           // Check for double-award
           const { data: existing } = await supabase
@@ -625,14 +625,14 @@ Deno.serve(async (req) => {
 
             await supabase.from('score_events').insert({
               room_id, match_id: room.match_id, round_index: room.current_round,
-              player_id: session_id, delta: 3, reason: 'GUESS_WIN',
+              player_id: session_id, delta: 4, reason: 'GUESS_WIN',
             });
 
             // Update player score atomically
             await supabase.rpc('increment_player_score', {
               p_room_id: room_id,
               p_session_id: session_id,
-              p_delta: 3,
+              p_delta: 4,
             });
           }
 
