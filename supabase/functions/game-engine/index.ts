@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
 
         try {
           const { data: players } = await supabase
-            .from('room_players').select('*').eq('room_id', room_id).eq('is_online', true);
+            .from('room_players').select('*').eq('room_id', room_id).eq('is_online', true).eq('is_eliminated', false);
           if (!players || players.length < room.min_players) {
             // ── Rollback: not enough players ──
             await supabase.from('rooms').update({ status: 'waiting', updated_at: new Date().toISOString() }).eq('id', room_id);
