@@ -987,11 +987,32 @@ async function finalizeRound(
         scoreEvents.push({ player_id: v.voter_session_id, delta: 1, reason: 'CORRECT_VOTE' });
       }
     });
+    // Rule C: caught imposter loses 1 point starting round 2
+    if (roundIndex >= 2) {
+      pointsAwarded[room.imposter_session_id] = (pointsAwarded[room.imposter_session_id] || 0) - 1;
+      scoreEvents.push({ player_id: room.imposter_session_id, delta: -1, reason: 'CAUGHT_PENALTY' });
+    }
   } else {
-    // Rule A: Imposter escapes, gets +3
-    outcome = 'IMPOSTER_ESCAPED';
-    pointsAwarded[room.imposter_session_id] = 3;
-    scoreEvents.push({ player_id: room.imposter_session_id, delta: 3, reason: 'ESCAPE' });
+    // Imposter escaped. Total votes on imposter (may be 0 or >=1 in tie case)
+    const impVotes = tally[room.imposter_session_id] || 0;
+    if (impVotes === 0) {
+      // Rule D: nobody voted for imposter → clean escape +4
+      outcome = 'IMPOSTER_ESCAPED_CLEAN';
+      pointsAwarded[room.imposter_session_id] = 4;
+      scoreEvents.push({ player_id: room.imposter_session_id, delta: 4, reason: 'ESCAPE_CLEAN' });
+    } else {
+      // Rule A: got some votes but not caught → +3
+      outcome = 'IMPOSTER_ESCAPED';
+      pointsAwarded[room.imposter_session_id] = 3;
+      scoreEvents.push({ player_id: room.imposter_session_id, delta: 3, reason: 'ESCAPE' });
+      // Correct voters (who voted for imposter, in a tie) also get +1
+      (votes || []).forEach(v => {
+        if (v.target_session_id === room.imposter_session_id) {
+          pointsAwarded[v.voter_session_id] = (pointsAwarded[v.voter_session_id] || 0) + 1;
+          scoreEvents.push({ player_id: v.voter_session_id, delta: 1, reason: 'CORRECT_VOTE' });
+        }
+      });
+    }
   }
 
   // Insert round_results
@@ -1019,5 +1040,16 @@ async function finalizeRound(
       p_session_id: playerId,
       p_delta: delta,
     });
+  }
+
+  // Elimination check — any player at score <= 0 becomes eliminated
+  const { data: updated } = await supabase
+    .from('room_players').select('id, session_id, score, is_eliminated')
+    .eq('room_id', roomId);
+  const toEliminate = (updated || []).filter(p => !p.is_eliminated && p.score <= 0);
+  if (toEliminate.length > 0) {
+    await Promise.all(toEliminate.map(p =>
+      supabase.from('room_players').update({ is_eliminated: true }).eq('id', p.id)
+    ));
   }
 }
