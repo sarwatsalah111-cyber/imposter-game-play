@@ -923,6 +923,38 @@ Deno.serve(async (req) => {
         return json({ success: true, skipped: target_session_id, auto_advanced: newTotalSpoken >= totalTurns });
       }
 
+      // ─── List open rooms for nearby-radar discovery ───
+      case 'list-open-rooms': {
+        const { data: rooms } = await supabase
+          .from('rooms')
+          .select('id, code, language, max_players, created_at')
+          .eq('status', 'waiting')
+          .eq('phase', 'lobby')
+          .order('created_at', { ascending: false })
+          .limit(30);
+        if (!rooms || rooms.length === 0) return json({ rooms: [] });
+
+        const ids = rooms.map(r => r.id);
+        const { data: playerRows } = await supabase
+          .from('room_players').select('room_id').in('room_id', ids);
+        const counts: Record<string, number> = {};
+        (playerRows || []).forEach(p => {
+          counts[p.room_id] = (counts[p.room_id] || 0) + 1;
+        });
+
+        const openRooms = rooms
+          .map(r => ({
+            code: r.code,
+            language: r.language,
+            max_players: r.max_players,
+            player_count: counts[r.id] || 0,
+            created_at: r.created_at,
+          }))
+          .filter(r => r.player_count > 0 && r.player_count < r.max_players);
+
+        return json({ rooms: openRooms });
+      }
+
       default:
         return json({ error: 'Unknown action' }, 400);
     }
