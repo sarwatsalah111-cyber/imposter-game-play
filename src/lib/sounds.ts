@@ -255,6 +255,59 @@ export function playClick() {
   osc.stop(ctx.currentTime + 0.12);
 }
 
+// ─── Radar ping — short sonar blip for nearby-rooms radar ────────
+export function playRadarPing() {
+  if (!isSoundEnabled()) return;
+  const ctx = getAudioContext();
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(1400, now);
+  osc.frequency.exponentialRampToValueAtTime(600, now + 0.4);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.09, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.5);
+}
+
+// ─── Points pop-up cue ──────────────────────────────────────────
+export function playPointsUp() {
+  if (!isSoundEnabled()) return;
+  const ctx = getAudioContext();
+  const now = ctx.currentTime;
+  [523.25, 659.25, 987.77].forEach((f, i) => {
+    const o = ctx.createOscillator();
+    o.type = 'triangle';
+    o.frequency.value = f;
+    const g = ctx.createGain();
+    const s = now + i * 0.08;
+    g.gain.setValueAtTime(0, s);
+    g.gain.linearRampToValueAtTime(0.18, s + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, s + 0.28);
+    o.connect(g).connect(ctx.destination);
+    o.start(s); o.stop(s + 0.3);
+  });
+}
+
+export function playPointsDown() {
+  if (!isSoundEnabled()) return;
+  vibrate(80);
+  const ctx = getAudioContext();
+  const now = ctx.currentTime;
+  const o = ctx.createOscillator();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(220, now);
+  o.frequency.exponentialRampToValueAtTime(80, now + 0.35);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.18, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+  o.connect(g).connect(ctx.destination);
+  o.start(now); o.stop(now + 0.42);
+}
+
 // ─── Spooky confirm sound — descending tone ─────────────────────
 export function playSpookyConfirm() {
   if (!isSoundEnabled()) return;

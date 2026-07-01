@@ -117,5 +117,17 @@ export function useGameEngine() {
 
     skipTurn: (session_id: string, room_id: string, target_session_id: string) =>
       callEngine<{ success: boolean }>('skip-turn', { session_id, room_id, target_session_id }),
+
+    listOpenRooms: () =>
+      callEngine<{ rooms: Array<{ code: string; language: string; max_players: number; player_count: number; created_at: string }> }>('list-open-rooms', {}),
+
+    generateWordImage: async (session_id: string, room_id: string, word: string): Promise<{ image: string }> => {
+      const { data, error } = await supabase.functions.invoke('word-image', {
+        body: { session_id, room_id, word },
+      });
+      if (error) throw new Error(error.message || 'Image generation failed');
+      if ((data as { error?: string } | null)?.error) throw new Error((data as { error: string }).error);
+      return data as { image: string };
+    },
   };
 }
