@@ -1,26 +1,48 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t } from '@/lib/i18n';
-import { Eye, MessageCircle, ArrowRight, Skull } from 'lucide-react';
+import { Eye, MessageCircle, ArrowRight, Skull, HelpCircle, RefreshCw, ImageIcon } from 'lucide-react';
 import { CountdownTimer } from './CountdownTimer';
+import { useDeviceTilt } from '@/hooks/useDeviceTilt';
+import { useGameEngine } from '@/hooks/useGameEngine';
 import revealLoop from '@/assets/reveal-loop.mp4.asset.json';
 import imposterReveal from '@/assets/imposter-reveal.mp4.asset.json';
 
 export function RevealPhase() {
-  const { reveal, language, room, isHost, advancePhase } = useGame();
+  const { reveal, language, room, isHost, advancePhase, sessionId } = useGame();
   const isImposter = reveal?.role === 'imposter';
   const [showSplash, setShowSplash] = useState(true);
+  const [flipped, setFlipped] = useState(false);
+  const [wordImage, setWordImage] = useState<string | null>(null);
+  const [imgLoading, setImgLoading] = useState(false);
+  const [imgError, setImgError] = useState<string | null>(null);
   const imposterVideoRef = useRef<HTMLVideoElement | null>(null);
+  const engine = useGameEngine();
+  const { tilt, needsPermission, requestPermission } = useDeviceTilt(12);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 1800);
     return () => clearTimeout(timer);
   }, []);
 
+  // Reset flip on new round
+  useEffect(() => {
+    setFlipped(false);
+    setWordImage(null);
+    setImgError(null);
+  }, [room?.current_round]);
+
+  // Auto-flip after 3s if untouched (so timer stays honest)
+  useEffect(() => {
+    if (showSplash || flipped) return;
+    const t = setTimeout(() => setFlipped(true), 3000);
+    return () => clearTimeout(t);
+  }, [showSplash, flipped]);
+
   // Reliably (re)start the imposter reveal video whenever it mounts/becomes visible
   useEffect(() => {
-    if (showSplash || !isImposter) return;
+    if (showSplash || !isImposter || !flipped) return;
     const v = imposterVideoRef.current;
     if (!v) return;
 
@@ -47,7 +69,7 @@ export function RevealPhase() {
       window.removeEventListener('touchstart', onInteract);
       window.removeEventListener('click', onInteract);
     };
-  }, [showSplash, isImposter, room?.current_round]);
+  }, [showSplash, isImposter, flipped, room?.current_round]);
 
   if (showSplash) {
     return (
@@ -112,6 +134,25 @@ export function RevealPhase() {
     wordLen <= 20 ? 'text-2xl' :
     'text-xl';
 
+  const generateImage = async () => {
+    if (!room || !primaryWord || isImposter) return;
+    setImgLoading(true);
+    setImgError(null);
+    try {
+      const res = await engine.generateWordImage(sessionId, room.id, reveal?.word || primaryWord);
+      setWordImage(res.image);
+    } catch (e) {
+      setImgError((e as Error).message);
+    } finally {
+      setImgLoading(false);
+    }
+  };
+
+  const tiltStyle: React.CSSProperties = {
+    transform: `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+    transition: 'transform 60ms linear',
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97 }}
@@ -148,14 +189,43 @@ export function RevealPhase() {
         <h2 className="font-display text-2xl font-bold text-foreground uppercase tracking-wider text-glow-purple">{t('game.reveal', language)}</h2>
       </div>
 
-      <motion.div
-        initial={{ rotateY: 90, opacity: 0 }}
-        animate={{ rotateY: 0, opacity: 1 }}
-        transition={{ duration: 0.25, type: 'spring', stiffness: 300, damping: 25 }}
-        className={`w-full max-w-xs p-8 spooky-panel spider-corner text-center ${
-          isImposter ? 'glow-red' : 'glow-purple'
-        }`}
+      {/* Tap-to-reveal 3D card */}
+      <div
+        onClick={() => {
+          if (!flipped) {
+            setFlipped(true);
+            if (needsPermission) requestPermission();
+          }
+        }}
+        className="w-full max-w-xs cursor-pointer"
+        style={{ perspective: '1200px' }}
       >
+        <motion.div
+          animate={{ rotateY: flipped ? 0 : 180 }}
+          transition={{ duration: 0.7, type: 'spring', stiffness: 120, damping: 18 }}
+          className="relative w-full"
+          style={{
+            transformStyle: 'preserve-3d',
+            minHeight: 340,
+            ...tiltStyle,
+          }}
+        >
+          {/* BACK (initial) */}
+          <div
+            className="absolute inset-0 p-8 spooky-panel spider-corner text-center flex flex-col items-center justify-center gap-4 glow-purple"
+            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+          >
+            <HelpCircle className="w-20 h-20 text-primary animate-pulse" />
+            <p className="font-display text-base font-bold text-foreground uppercase tracking-wider text-glow-purple">
+              {t('reveal.tapToReveal', language)}
+            </p>
+          </div>
+
+          {/* FRONT (revealed) */}
+          <div
+            className={`p-6 spooky-panel spider-corner text-center ${isImposter ? 'glow-red' : 'glow-purple'}`}
+            style={{ backfaceVisibility: 'hidden' }}
+          >
         {isImposter ? (
           <>
             <div className="relative mx-auto mb-4 flex items-center justify-center" style={{ width: 140, height: 140 }}>
@@ -191,10 +261,38 @@ export function RevealPhase() {
             <div className="spooky-inner border border-border rounded-lg p-4">
               <p className="text-muted-foreground text-xs mb-1 font-display uppercase tracking-widest">{t('game.secretWord', language)}</p>
               <p className={`font-display ${wordSizeClass} font-bold text-accent text-glow-gold mt-2 break-words leading-tight`}>{primaryWord}</p>
+              <p className="text-[11px] text-muted-foreground italic mt-2">{t('reveal.dontForget', language)}</p>
+            </div>
+            {/* AI image preview */}
+            <div className="mt-3">
+              {wordImage ? (
+                <div className="relative rounded-lg overflow-hidden border border-accent/30">
+                  <img src={wordImage} alt="" className="w-full h-40 object-cover" />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); generateImage(); }}
+                    className="absolute top-1 right-1 w-7 h-7 rounded-full bg-background/70 flex items-center justify-center text-foreground"
+                    title={t('reveal.regenerate', language)}
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${imgLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={(e) => { e.stopPropagation(); generateImage(); }}
+                  disabled={imgLoading}
+                  className="w-full py-2 spooky-btn text-xs flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  {imgLoading ? t('reveal.generating', language) : t('reveal.regenerate', language)}
+                </button>
+              )}
+              {imgError && <p className="text-[10px] text-destructive mt-1">{imgError}</p>}
             </div>
           </>
         )}
-      </motion.div>
+          </div>
+        </motion.div>
+      </div>
 
       <p className="text-muted-foreground text-xs animate-pulse italic">{t('game.memorize', language)}</p>
 

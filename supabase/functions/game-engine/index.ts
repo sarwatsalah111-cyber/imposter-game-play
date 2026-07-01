@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
 
         try {
           const { data: players } = await supabase
-            .from('room_players').select('*').eq('room_id', room_id).eq('is_online', true);
+            .from('room_players').select('*').eq('room_id', room_id).eq('is_online', true).eq('is_eliminated', false);
           if (!players || players.length < room.min_players) {
             // ── Rollback: not enough players ──
             await supabase.from('rooms').update({ status: 'waiting', updated_at: new Date().toISOString() }).eq('id', room_id);
@@ -605,8 +605,8 @@ Deno.serve(async (req) => {
         }
 
         if (correct) {
-          // Award +3 to imposter, skip voting, go to results
-          const pointsAwarded: Record<string, number> = { [session_id]: 3 };
+          // Award +4 to imposter, skip voting, go to results
+          const pointsAwarded: Record<string, number> = { [session_id]: 4 };
 
           // Check for double-award
           const { data: existing } = await supabase
@@ -625,14 +625,14 @@ Deno.serve(async (req) => {
 
             await supabase.from('score_events').insert({
               room_id, match_id: room.match_id, round_index: room.current_round,
-              player_id: session_id, delta: 3, reason: 'GUESS_WIN',
+              player_id: session_id, delta: 4, reason: 'GUESS_WIN',
             });
 
             // Update player score atomically
             await supabase.rpc('increment_player_score', {
               p_room_id: room_id,
               p_session_id: session_id,
-              p_delta: 3,
+              p_delta: 4,
             });
           }
 
@@ -923,6 +923,38 @@ Deno.serve(async (req) => {
         return json({ success: true, skipped: target_session_id, auto_advanced: newTotalSpoken >= totalTurns });
       }
 
+      // ─── List open rooms for nearby-radar discovery ───
+      case 'list-open-rooms': {
+        const { data: rooms } = await supabase
+          .from('rooms')
+          .select('id, code, language, max_players, created_at')
+          .eq('status', 'waiting')
+          .eq('phase', 'lobby')
+          .order('created_at', { ascending: false })
+          .limit(30);
+        if (!rooms || rooms.length === 0) return json({ rooms: [] });
+
+        const ids = rooms.map(r => r.id);
+        const { data: playerRows } = await supabase
+          .from('room_players').select('room_id').in('room_id', ids);
+        const counts: Record<string, number> = {};
+        (playerRows || []).forEach(p => {
+          counts[p.room_id] = (counts[p.room_id] || 0) + 1;
+        });
+
+        const openRooms = rooms
+          .map(r => ({
+            code: r.code,
+            language: r.language,
+            max_players: r.max_players,
+            player_count: counts[r.id] || 0,
+            created_at: r.created_at,
+          }))
+          .filter(r => r.player_count > 0 && r.player_count < r.max_players);
+
+        return json({ rooms: openRooms });
+      }
+
       default:
         return json({ error: 'Unknown action' }, 400);
     }
@@ -987,11 +1019,32 @@ async function finalizeRound(
         scoreEvents.push({ player_id: v.voter_session_id, delta: 1, reason: 'CORRECT_VOTE' });
       }
     });
+    // Rule C: caught imposter loses 1 point starting round 2
+    if (roundIndex >= 2) {
+      pointsAwarded[room.imposter_session_id] = (pointsAwarded[room.imposter_session_id] || 0) - 1;
+      scoreEvents.push({ player_id: room.imposter_session_id, delta: -1, reason: 'CAUGHT_PENALTY' });
+    }
   } else {
-    // Rule A: Imposter escapes, gets +3
-    outcome = 'IMPOSTER_ESCAPED';
-    pointsAwarded[room.imposter_session_id] = 3;
-    scoreEvents.push({ player_id: room.imposter_session_id, delta: 3, reason: 'ESCAPE' });
+    // Imposter escaped. Total votes on imposter (may be 0 or >=1 in tie case)
+    const impVotes = tally[room.imposter_session_id] || 0;
+    if (impVotes === 0) {
+      // Rule D: nobody voted for imposter → clean escape +4
+      outcome = 'IMPOSTER_ESCAPED_CLEAN';
+      pointsAwarded[room.imposter_session_id] = 4;
+      scoreEvents.push({ player_id: room.imposter_session_id, delta: 4, reason: 'ESCAPE_CLEAN' });
+    } else {
+      // Rule A: got some votes but not caught → +3
+      outcome = 'IMPOSTER_ESCAPED';
+      pointsAwarded[room.imposter_session_id] = 3;
+      scoreEvents.push({ player_id: room.imposter_session_id, delta: 3, reason: 'ESCAPE' });
+      // Correct voters (who voted for imposter, in a tie) also get +1
+      (votes || []).forEach(v => {
+        if (v.target_session_id === room.imposter_session_id) {
+          pointsAwarded[v.voter_session_id] = (pointsAwarded[v.voter_session_id] || 0) + 1;
+          scoreEvents.push({ player_id: v.voter_session_id, delta: 1, reason: 'CORRECT_VOTE' });
+        }
+      });
+    }
   }
 
   // Insert round_results
@@ -1019,5 +1072,17 @@ async function finalizeRound(
       p_session_id: playerId,
       p_delta: delta,
     });
+  }
+
+  // Elimination: an imposter who was caught (took a -1 penalty this round)
+  // and whose total score is now <= 0 is eliminated from the match.
+  const penaltyTaken = scoreEvents.some(e => e.reason === 'CAUGHT_PENALTY');
+  if (penaltyTaken) {
+    const { data: imp } = await supabase
+      .from('room_players').select('id, score, is_eliminated')
+      .eq('room_id', roomId).eq('session_id', room.imposter_session_id).maybeSingle();
+    if (imp && !imp.is_eliminated && imp.score <= 0) {
+      await supabase.from('room_players').update({ is_eliminated: true }).eq('id', imp.id);
+    }
   }
 }
