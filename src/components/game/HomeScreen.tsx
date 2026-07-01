@@ -448,6 +448,13 @@ export function HomeScreen() {
         >
           <Info className="w-5 h-5" />
         </button>
+        <button
+          onClick={() => { playClick(); setShowRadar(true); }}
+          className="w-10 h-10 rounded-lg spooky-inner border border-emerald-500/40 flex items-center justify-center text-emerald-300 hover:text-emerald-200 hover:border-emerald-400/70 transition-colors shadow-[0_0_10px_hsl(150_90%_45%/0.35)]"
+          title={t('home.radar', language)}
+        >
+          <Radar className="w-5 h-5" />
+        </button>
       </div>
 
       <motion.div
