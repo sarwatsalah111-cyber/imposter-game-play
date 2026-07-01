@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t, LANGUAGES, type Language } from '@/lib/i18n';
-import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, BookOpen, ChevronDown, Type } from 'lucide-react';
+import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, BookOpen, ChevronDown, Type, Radar } from 'lucide-react';
+import { RadarNearby } from './RadarNearby';
 import { SpyLogo } from './SpyLogo';
 import spyLogo from '@/assets/spy-logo.mp4.asset.json';
 import { startAmbient, stopAmbient, playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
@@ -329,6 +330,7 @@ export function HomeScreen() {
   const [showSettings, setShowSettings] = useState(false);
   const [showWordBank, setShowWordBank] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [showRadar, setShowRadar] = useState(false);
 
   // Logo video autoplay (iOS-safe): try play() on mount + on first user interaction.
   const logoVideoRef = useRef<HTMLVideoElement>(null);
@@ -652,6 +654,7 @@ export function HomeScreen() {
       <AnimatePresence>
         {showHowTo && <HowToPlayModal language={language} onClose={() => setShowHowTo(false)} />}
         {showAbout && <AboutModal language={language} onClose={() => setShowAbout(false)} />}
+        {showRadar && <RadarNearby onClose={() => setShowRadar(false)} />}
         {showSettings && <SettingsModal language={language} onClose={() => setShowSettings(false)} />}
         {showWordBank && <WordBankModal language={language} uiLang={language} onClose={() => setShowWordBank(false)} />}
       </AnimatePresence>
