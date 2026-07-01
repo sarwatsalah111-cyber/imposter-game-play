@@ -1042,14 +1042,15 @@ async function finalizeRound(
     });
   }
 
-  // Elimination check — any player at score <= 0 becomes eliminated
-  const { data: updated } = await supabase
-    .from('room_players').select('id, session_id, score, is_eliminated')
-    .eq('room_id', roomId);
-  const toEliminate = (updated || []).filter(p => !p.is_eliminated && p.score <= 0);
-  if (toEliminate.length > 0) {
-    await Promise.all(toEliminate.map(p =>
-      supabase.from('room_players').update({ is_eliminated: true }).eq('id', p.id)
-    ));
+  // Elimination: an imposter who was caught (took a -1 penalty this round)
+  // and whose total score is now <= 0 is eliminated from the match.
+  const penaltyTaken = scoreEvents.some(e => e.reason === 'CAUGHT_PENALTY');
+  if (penaltyTaken) {
+    const { data: imp } = await supabase
+      .from('room_players').select('id, score, is_eliminated')
+      .eq('room_id', roomId).eq('session_id', room.imposter_session_id).maybeSingle();
+    if (imp && !imp.is_eliminated && imp.score <= 0) {
+      await supabase.from('room_players').update({ is_eliminated: true }).eq('id', imp.id);
+    }
   }
 }
