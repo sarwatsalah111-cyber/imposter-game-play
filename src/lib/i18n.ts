@@ -197,6 +197,10 @@ const translations: Record<Language, Record<string, string>> = {
     'radar.empty': 'No rooms nearby — try creating one',
     'radar.found': 'rooms detected',
     'radar.autoJoin': 'Auto-Join Closest',
+    'radar.refresh': 'Refresh',
+    'radar.error': 'Could not reach radar',
+    'radar.retrying': 'Retrying…',
+    'radar.retryingIn': 'Retrying in',
     'home.radar': 'Find Nearby',
   },
   AR: {
