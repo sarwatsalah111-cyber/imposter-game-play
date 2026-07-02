@@ -21,10 +21,11 @@ function seededAngle(code: string) {
 }
 
 export function RadarNearby({ onClose }: { onClose: () => void }) {
-  const { language, joinRoom } = useGame();
+  const { language, joinRoom, nickname } = useGame();
   const engine = useGameEngine();
   const [rooms, setRooms] = useState<OpenRoom[]>([]);
   const [ready, setReady] = useState(false);
+  const [nickError, setNickError] = useState(false);
   const pingTimerRef = useRef<number | null>(null);
 
   const fetchRooms = async () => {
@@ -59,10 +60,19 @@ export function RadarNearby({ onClose }: { onClose: () => void }) {
     return { r, x: Math.cos(angle) * R * dist, y: Math.sin(angle) * R * dist };
   });
 
+  const doJoin = (code: string) => {
+    if (!nickname.trim()) {
+      setNickError(true);
+      return;
+    }
+    playClick();
+    joinRoom(code);
+    onClose();
+  };
+
   const autoJoin = () => {
     if (rooms.length === 0) return;
-    playClick();
-    joinRoom(rooms[0].code);
+    doJoin(rooms[0].code);
   };
 
   return (
@@ -126,7 +136,7 @@ export function RadarNearby({ onClose }: { onClose: () => void }) {
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: i * 0.06 }}
-              onClick={() => { playClick(); joinRoom(d.r.code); }}
+              onClick={() => doJoin(d.r.code)}
               className="absolute w-4 h-4 rounded-full bg-emerald-400 hover:bg-emerald-300 shadow-[0_0_12px_hsl(150_90%_50%/0.9)]"
               style={{
                 left: `calc(50% + ${d.x}px - 8px)`,
@@ -148,6 +158,12 @@ export function RadarNearby({ onClose }: { onClose: () => void }) {
               ? t('radar.empty', language)
               : `${rooms.length} ${t('radar.found', language)}`}
         </div>
+
+        {nickError && (
+          <div className="text-center text-xs text-destructive mb-2">
+            {t('errors.nicknameRequired', language) || 'Enter your name first'}
+          </div>
+        )}
 
         <button
           onClick={autoJoin}
