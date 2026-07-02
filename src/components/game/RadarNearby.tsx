@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { useGameEngine } from '@/hooks/useGameEngine';
 import { t } from '@/lib/i18n';
-import { X, Radar } from 'lucide-react';
+import { X, Radar, RefreshCw } from 'lucide-react';
 import { playClick, playRadarPing } from '@/lib/sounds';
 
 interface OpenRoom {
@@ -26,28 +26,75 @@ export function RadarNearby({ onClose }: { onClose: () => void }) {
   const [rooms, setRooms] = useState<OpenRoom[]>([]);
   const [ready, setReady] = useState(false);
   const [nickError, setNickError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [retryIn, setRetryIn] = useState(0);
   const pingTimerRef = useRef<number | null>(null);
+  const pollTimerRef = useRef<number | null>(null);
+  const retryTimerRef = useRef<number | null>(null);
+  const countdownTimerRef = useRef<number | null>(null);
+  const failureCountRef = useRef(0);
 
-  const fetchRooms = async () => {
+  const clearRetryTimers = () => {
+    if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+    if (countdownTimerRef.current) { clearInterval(countdownTimerRef.current); countdownTimerRef.current = null; }
+  };
+
+  const scheduleRetry = () => {
+    // Exponential backoff: 2s, 4s, 8s, 16s, cap 30s
+    const attempt = failureCountRef.current;
+    const delaySec = Math.min(30, Math.pow(2, attempt));
+    setRetryIn(delaySec);
+    clearRetryTimers();
+    countdownTimerRef.current = window.setInterval(() => {
+      setRetryIn((s) => (s > 1 ? s - 1 : 0));
+    }, 1000);
+    retryTimerRef.current = window.setTimeout(() => {
+      clearRetryTimers();
+      setRetryIn(0);
+      fetchRooms();
+    }, delaySec * 1000);
+  };
+
+  const fetchRooms = async (manual = false) => {
+    if (manual) {
+      clearRetryTimers();
+      setRetryIn(0);
+      setIsRefreshing(true);
+      playClick();
+    }
     try {
       const res = await engine.listOpenRooms();
       setRooms(res.rooms || []);
       setReady(true);
-    } catch {
+      setError(null);
+      failureCountRef.current = 0;
+      // resume regular polling
+      if (!pollTimerRef.current) {
+        pollTimerRef.current = window.setInterval(() => fetchRooms(), 3500);
+      }
+    } catch (e: any) {
       setReady(true);
+      failureCountRef.current += 1;
+      setError(e?.message || 'Failed to load rooms');
+      // pause regular polling while erroring
+      if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null; }
+      scheduleRetry();
+    } finally {
+      if (manual) setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchRooms();
-    const iv = setInterval(fetchRooms, 3500);
     // radar ping every ~3s
     const ping = () => { playRadarPing(); };
     pingTimerRef.current = window.setInterval(ping, 3000);
     ping();
     return () => {
-      clearInterval(iv);
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
       if (pingTimerRef.current) clearInterval(pingTimerRef.current);
+      clearRetryTimers();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -91,9 +138,19 @@ export function RadarNearby({ onClose }: { onClose: () => void }) {
             <Radar className="w-5 h-5 text-emerald-400" />
             {t('radar.title', language)}
           </h2>
-          <button onClick={() => { playClick(); onClose(); }} className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-foreground">
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fetchRooms(true)}
+              disabled={isRefreshing}
+              title={t('radar.refresh', language) || 'Refresh'}
+              className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button onClick={() => { playClick(); onClose(); }} className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="relative mx-auto mb-4" style={{ width: R * 2 + 40, height: R * 2 + 40 }}>
@@ -158,6 +215,27 @@ export function RadarNearby({ onClose }: { onClose: () => void }) {
               ? t('radar.empty', language)
               : `${rooms.length} ${t('radar.found', language)}`}
         </div>
+
+        {error && (
+          <div className="mb-3 p-2 rounded-md spooky-inner border border-destructive/50 text-center">
+            <div className="text-xs text-destructive mb-1">
+              {t('radar.error', language) || 'Could not reach radar'}
+            </div>
+            <div className="text-[10px] text-muted-foreground mb-2">
+              {retryIn > 0
+                ? `${t('radar.retryingIn', language) || 'Retrying in'} ${retryIn}s`
+                : t('radar.retrying', language) || 'Retrying…'}
+            </div>
+            <button
+              onClick={() => fetchRooms(true)}
+              disabled={isRefreshing}
+              className="text-xs px-3 py-1 rounded-md spooky-btn disabled:opacity-50 inline-flex items-center gap-1"
+            >
+              <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {t('radar.refresh', language) || 'Refresh'}
+            </button>
+          </div>
+        )}
 
         {nickError && (
           <div className="text-center text-xs text-destructive mb-2">

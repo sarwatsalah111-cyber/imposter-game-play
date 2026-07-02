@@ -197,6 +197,10 @@ const translations: Record<Language, Record<string, string>> = {
     'radar.empty': 'No rooms nearby — try creating one',
     'radar.found': 'rooms detected',
     'radar.autoJoin': 'Auto-Join Closest',
+    'radar.refresh': 'Refresh',
+    'radar.error': 'Could not reach radar',
+    'radar.retrying': 'Retrying…',
+    'radar.retryingIn': 'Retrying in',
     'home.radar': 'Find Nearby',
   },
   AR: {
@@ -388,6 +392,10 @@ const translations: Record<Language, Record<string, string>> = {
     'radar.empty': 'لا توجد غرف — أنشئ واحدة',
     'radar.found': 'غرف',
     'radar.autoJoin': 'انضم تلقائياً',
+    'radar.refresh': 'تحديث',
+    'radar.error': 'تعذر الوصول إلى الرادار',
+    'radar.retrying': '...إعادة المحاولة',
+    'radar.retryingIn': 'إعادة المحاولة خلال',
     'home.radar': 'ابحث عن غرفة',
   },
   KU_CENTRAL: {
@@ -579,6 +587,10 @@ const translations: Record<Language, Record<string, string>> = {
     'radar.empty': 'هیچ ژوورێک نییە — یەکێک دروست بکە',
     'radar.found': 'ژوور دۆزرایەوە',
     'radar.autoJoin': 'خۆکار بچۆ ژوور',
+    'radar.refresh': 'نوێکردنەوە',
+    'radar.error': 'نەتوانرا ڕادار بدۆزرێتەوە',
+    'radar.retrying': '...هەوڵدانەوە',
+    'radar.retryingIn': 'هەوڵدانەوە لە',
     'home.radar': 'دۆزینەوەی ژوور',
   },
   KU_KURMANJI: {
@@ -770,6 +782,10 @@ const translations: Record<Language, Record<string, string>> = {
     'radar.empty': 'Ode nehat dîtin — yekê ava bike',
     'radar.found': 'ode hat dîtin',
     'radar.autoJoin': 'Otomatîk Têkeve',
+    'radar.refresh': 'Nûkirin',
+    'radar.error': 'Radar nehat gihîştin',
+    'radar.retrying': 'Ji nû ve tê ceribandin…',
+    'radar.retryingIn': 'Ji nû ve di',
     'home.radar': 'Ode Bibîne',
   },
 };
