@@ -925,18 +925,25 @@ Deno.serve(async (req) => {
 
       // ─── List open rooms for nearby-radar discovery ───
       case 'list-open-rooms': {
+        // Only rooms updated in the last 10 minutes with online players
+        const cutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
         const { data: rooms } = await supabase
           .from('rooms')
           .select('id, code, language, max_players, created_at')
           .eq('status', 'waiting')
           .eq('phase', 'lobby')
+          .gte('updated_at', cutoff)
           .order('created_at', { ascending: false })
           .limit(30);
         if (!rooms || rooms.length === 0) return json({ rooms: [] });
 
         const ids = rooms.map(r => r.id);
+        const heartbeatCutoff = new Date(Date.now() - 30 * 1000).toISOString();
         const { data: playerRows } = await supabase
-          .from('room_players').select('room_id').in('room_id', ids);
+          .from('room_players').select('room_id')
+          .in('room_id', ids)
+          .eq('is_online', true)
+          .gte('last_heartbeat', heartbeatCutoff);
         const counts: Record<string, number> = {};
         (playerRows || []).forEach(p => {
           counts[p.room_id] = (counts[p.room_id] || 0) + 1;
