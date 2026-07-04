@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t, LANGUAGES, type Language } from '@/lib/i18n';
-import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, BookOpen, ChevronDown, Type, Radar } from 'lucide-react';
+import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, BookOpen, ChevronDown, Type, Radar, Sliders, Music2, Gamepad2 } from 'lucide-react';
 import { RadarNearby } from './RadarNearby';
 import { SpyLogo } from './SpyLogo';
 import spyLogo from '@/assets/spy-logo.mp4.asset.json';
@@ -11,110 +11,58 @@ import { startAmbient, stopAmbient, playClick, isSoundEnabled, setSoundEnabled, 
 import { getDefaultSettings, saveDefaultSettings, type DefaultGameSettings, getSoraniFont, setSoraniFont as saveSoraniFont, type SoraniFont } from '@/lib/session';
 import { WordBankModal } from './WordBankManager';
 
-function HowToPlayModal({ language, onClose }: { language: Language; onClose: () => void }) {
+function HowToPlaySection({ language }: { language: Language }) {
   const steps = [
     { icon: '👥', title: t('howto.step1Title', language), desc: t('howto.step1Desc', language) },
     { icon: '🔍', title: t('howto.step2Title', language), desc: t('howto.step2Desc', language) },
     { icon: '🗣️', title: t('howto.step3Title', language), desc: t('howto.step3Desc', language) },
     { icon: '🗳️', title: t('howto.step4Title', language), desc: t('howto.step4Desc', language) },
     { icon: '🏆', title: t('howto.step5Title', language), desc: t('howto.step5Desc', language) },
+    { icon: '💀', title: t('howto.step6Title', language), desc: t('howto.step6Desc', language) },
   ];
-
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain p-4 py-[env(safe-area-inset-top,1rem)] bg-background/80 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm spooky-panel p-5 my-auto"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple flex items-center gap-2">
-            <HelpCircle className="w-5 h-5 text-primary" />
-            {t('howto.title', language)}
-          </h2>
-          <button onClick={() => { playClick(); onClose(); }} className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          {steps.map((step, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className="flex gap-3 p-3 rounded-lg spooky-inner border border-border"
-            >
-              <span className="text-2xl flex-shrink-0">{step.icon}</span>
-              <div>
-                <p className="font-display font-bold text-accent text-sm uppercase tracking-wider">{step.title}</p>
-                <p className="text-muted-foreground text-xs mt-0.5 leading-relaxed">{step.desc}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
-    </motion.div>
+    <div className="space-y-2.5">
+      {steps.map((step, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: i * 0.05 }}
+          className="flex gap-3 p-3 rounded-lg spooky-inner border border-border"
+        >
+          <span className="text-2xl flex-shrink-0 leading-none">{step.icon}</span>
+          <div className="min-w-0">
+            <p className="font-display font-bold text-accent text-sm uppercase tracking-wider">{step.title}</p>
+            <p className="text-muted-foreground text-xs mt-0.5 leading-relaxed">{step.desc}</p>
+          </div>
+        </motion.div>
+      ))}
+    </div>
   );
 }
 
-function AboutModal({ language, onClose }: { language: Language; onClose: () => void }) {
+function AboutSection({ language }: { language: Language }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain p-4 py-[env(safe-area-inset-top,1rem)] bg-background/80 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm spooky-panel p-5 my-auto"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple flex items-center gap-2">
-            <Info className="w-5 h-5 text-primary" />
-            {t('about.title', language)}
-          </h2>
-          <button onClick={() => { playClick(); onClose(); }} className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center">
-            <SpyLogo size={56} className="text-primary drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]" />
-          </div>
-          <h3 className="font-display text-2xl font-bold text-foreground uppercase tracking-wider text-glow-purple">
-            {t('app.title', language)}
-          </h3>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            {t('about.description', language)}
-          </p>
-          <div className="spooky-inner border border-border rounded-lg p-4">
-            <p className="text-muted-foreground text-xs uppercase tracking-widest font-display mb-1">
-              {t('about.developedBy', language)}
-            </p>
-            <p className="font-display text-xl font-bold text-accent text-glow-gold uppercase tracking-wider">
-              Saro
-            </p>
-          </div>
-          <p className="text-muted-foreground/50 text-xs font-display">v1.0</p>
-        </div>
-      </motion.div>
-    </motion.div>
+    <div className="text-center space-y-4 py-2">
+      <div className="flex items-center justify-center">
+        <SpyLogo size={56} className="text-primary drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]" />
+      </div>
+      <h3 className="font-display text-2xl font-bold text-foreground uppercase tracking-wider text-glow-purple">
+        {t('app.title', language)}
+      </h3>
+      <p className="text-muted-foreground text-sm leading-relaxed">
+        {t('about.description', language)}
+      </p>
+      <div className="spooky-inner border border-border rounded-lg p-4">
+        <p className="text-muted-foreground text-xs uppercase tracking-widest font-display mb-1">
+          {t('about.developedBy', language)}
+        </p>
+        <p className="font-display text-xl font-bold text-accent text-glow-gold uppercase tracking-wider">
+          Saro
+        </p>
+      </div>
+      <p className="text-muted-foreground/50 text-xs font-display">v1.0</p>
+    </div>
   );
 }
 
@@ -152,6 +100,8 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
   const [vibrationOn, setVibrationOn] = useState(isVibrationEnabled());
   const [soraniFont, setSoraniFontState] = useState<SoraniFont>(getSoraniFont());
   const [saved, setSaved] = useState(false);
+  const [section, setSection] = useState<'game' | 'audio' | 'font' | 'words' | 'howto' | 'about'>('game');
+  const [showWordBank, setShowWordBank] = useState(false);
 
   const updateSetting = (key: keyof DefaultGameSettings, value: number) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -174,6 +124,17 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
     playClick();
   };
 
+  const NAV = [
+    { id: 'game' as const, label: t('settings.nav.game', language), icon: Gamepad2 },
+    { id: 'audio' as const, label: t('settings.nav.audio', language), icon: Music2 },
+    { id: 'font' as const, label: t('settings.nav.font', language), icon: Type },
+    { id: 'words' as const, label: t('settings.nav.words', language), icon: BookOpen },
+    { id: 'howto' as const, label: t('settings.nav.howto', language), icon: HelpCircle },
+    { id: 'about' as const, label: t('settings.nav.about', language), icon: Info },
+  ];
+
+  const showSaveBar = section === 'game' || section === 'audio' || section === 'font';
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -187,7 +148,7 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm spooky-panel p-5 my-auto"
+        className="w-full max-w-md spooky-panel p-4 sm:p-5 my-auto"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple flex items-center gap-2">
@@ -199,7 +160,46 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
           </button>
         </div>
 
-        <div className="space-y-1 mb-4">
+        {/* Section navigation */}
+        <div className="relative -mx-1 mb-4 overflow-x-auto no-scrollbar">
+          <div className="flex gap-1.5 px-1 pb-1 min-w-max">
+            {NAV.map(n => {
+              const active = section === n.id;
+              return (
+                <button
+                  key={n.id}
+                  onClick={() => { playClick(); setSection(n.id); }}
+                  className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
+                    active
+                      ? 'spooky-btn-gold text-background'
+                      : 'spooky-inner border border-border text-muted-foreground hover:text-foreground hover:border-primary/40'
+                  }`}
+                >
+                  <n.icon className="w-3.5 h-3.5" />
+                  {n.label}
+                  {active && (
+                    <motion.span
+                      layoutId="settings-nav-underline"
+                      className="absolute -bottom-[3px] left-3 right-3 h-[2px] rounded-full bg-accent"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="max-h-[65vh] overflow-y-auto pr-1 -mr-1">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={section}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+            >
+              {section === 'game' && (
+                <div className="space-y-1">
           <SettingRow
             label={t('lobby.maxPlayers', language)}
             value={settings.max_players}
@@ -230,9 +230,11 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
             onChange={v => updateSetting('discussion_time', v)}
             min={30} max={300} step={10} suffix="s"
           />
-        </div>
+                </div>
+              )}
 
-        <div className="border-t border-border pt-3 mb-4 space-y-1">
+              {section === 'audio' && (
+                <div className="space-y-1">
           <div className="flex items-center justify-between gap-3 py-2">
             <span className="text-sm text-muted-foreground flex items-center gap-2">
               {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -257,10 +259,11 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
               <div className={`w-5 h-5 rounded-full bg-foreground absolute top-1 transition-all ${vibrationOn ? 'left-6' : 'left-1'}`} />
             </button>
           </div>
-        </div>
+                </div>
+              )}
 
-        {/* Sorani Font Selector */}
-        <div className="border-t border-border pt-3 mb-4">
+              {section === 'font' && (
+                <div>
           <div className="flex items-center gap-2 mb-2">
             <Type className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">
@@ -306,14 +309,51 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
             <p className="text-sm text-foreground/80 text-center mt-1 leading-relaxed">جاسوسەکەی نێوانتان بدۆزەوە، یان هەمویان هەڵبخەڵەتێنە</p>
             <p className="text-xs text-muted-foreground text-center mt-1">١ ٢ ٣ ٤ ٥ ٦ ٧ ٨ ٩ ٠ — ئابجد</p>
           </div>
-          <button onClick={handleReset} className="flex-1 py-2.5 spooky-btn text-xs">
-            {t('settings.reset', language)}
-          </button>
-          <button onClick={() => { playClick(); handleSave(); }} className="flex-1 py-2.5 spooky-btn-gold spooky-btn text-xs">
-            {saved ? '✓ ' + t('settings.saved', language) : t('settings.save', language)}
-          </button>
+                </div>
+              )}
+
+              {section === 'words' && (
+                <div className="space-y-3 py-2 text-center">
+                  <BookOpen className="w-10 h-10 text-primary mx-auto" />
+                  <h3 className="font-display font-bold text-foreground text-base uppercase tracking-wider text-glow-purple">
+                    {t('wordbank.title', language)}
+                  </h3>
+                  <p className="text-muted-foreground text-xs leading-relaxed max-w-xs mx-auto">
+                    {t('settings.wordsHint', language)}
+                  </p>
+                  <button
+                    onClick={() => { playClick(); setShowWordBank(true); }}
+                    className="w-full py-3 spooky-btn-gold spooky-btn text-sm flex items-center justify-center gap-2"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    {t('settings.manageWords', language)}
+                  </button>
+                </div>
+              )}
+
+              {section === 'howto' && <HowToPlaySection language={language} />}
+              {section === 'about' && <AboutSection language={language} />}
+            </motion.div>
+          </AnimatePresence>
         </div>
+
+        {showSaveBar && (
+          <div className="flex gap-2 mt-4 pt-3 border-t border-border">
+            <button onClick={handleReset} className="flex-1 py-2.5 spooky-btn text-xs">
+              {t('settings.reset', language)}
+            </button>
+            <button onClick={() => { playClick(); handleSave(); }} className="flex-1 py-2.5 spooky-btn-gold spooky-btn text-xs">
+              {saved ? '✓ ' + t('settings.saved', language) : t('settings.save', language)}
+            </button>
+          </div>
+        )}
       </motion.div>
+
+      <AnimatePresence>
+        {showWordBank && (
+          <WordBankModal language={language} uiLang={language} onClose={() => setShowWordBank(false)} />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -325,10 +365,7 @@ export function HomeScreen() {
 
   const [mode, setMode] = useState<'home' | 'create' | 'join'>(joinCode ? 'join' : 'home');
   const [roomCode, setRoomCode] = useState(joinCode);
-  const [showHowTo, setShowHowTo] = useState(false);
-  const [showAbout, setShowAbout] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showWordBank, setShowWordBank] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showRadar, setShowRadar] = useState(false);
 
@@ -437,18 +474,11 @@ export function HomeScreen() {
           {showLangMenu && <div className="fixed inset-0 z-20" onClick={() => setShowLangMenu(false)} />}
         </div>
         <button
-          onClick={() => { playClick(); setShowHowTo(true); }}
+          onClick={() => { playClick(); setShowSettings(true); }}
           className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
-          title={t('howto.title', language)}
+          title={t('settings.title', language)}
         >
-          <HelpCircle className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => { playClick(); setShowAbout(true); }}
-          className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-accent hover:border-accent/40 transition-colors"
-          title={t('about.title', language)}
-        >
-          <Info className="w-5 h-5" />
+          <Settings className="w-5 h-5" />
         </button>
         <button
           onClick={() => { playClick(); setShowRadar(true); }}
@@ -569,26 +599,19 @@ export function HomeScreen() {
                 {t('home.create', language)}
               </button>
               <button
-                onClick={() => { playClick(); setShowSettings(true); }}
-                className="w-full py-4 spooky-btn text-base flex items-center justify-center gap-2"
-              >
-                <Settings className="w-5 h-5" />
-                {t('settings.title', language)}
-              </button>
-              <button
-                onClick={() => { playClick(); setShowWordBank(true); }}
-                className="w-full py-4 spooky-btn text-base flex items-center justify-center gap-2"
-              >
-                <BookOpen className="w-5 h-5" />
-                {t('wordbank.title', language)}
-              </button>
-              <button
                 onClick={() => { playClick(); if (nickname.trim()) setMode('join'); }}
                 disabled={!nickname.trim()}
                 className="w-full py-4 spooky-btn-gold spooky-btn text-base flex items-center justify-center gap-2"
               >
                 <Globe className="w-5 h-5" />
                 {t('home.join', language)}
+              </button>
+              <button
+                onClick={() => { playClick(); setShowSettings(true); }}
+                className="w-full py-3 spooky-btn text-sm flex items-center justify-center gap-2 opacity-90"
+              >
+                <Sliders className="w-4 h-4" />
+                {t('settings.title', language)}
               </button>
             </motion.div>
           )}
@@ -652,11 +675,8 @@ export function HomeScreen() {
 
       {/* Modals */}
       <AnimatePresence>
-        {showHowTo && <HowToPlayModal language={language} onClose={() => setShowHowTo(false)} />}
-        {showAbout && <AboutModal language={language} onClose={() => setShowAbout(false)} />}
         {showRadar && <RadarNearby onClose={() => setShowRadar(false)} />}
         {showSettings && <SettingsModal language={language} onClose={() => setShowSettings(false)} />}
-        {showWordBank && <WordBankModal language={language} uiLang={language} onClose={() => setShowWordBank(false)} />}
       </AnimatePresence>
     </div>
   );
