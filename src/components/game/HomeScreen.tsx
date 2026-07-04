@@ -365,10 +365,7 @@ export function HomeScreen() {
 
   const [mode, setMode] = useState<'home' | 'create' | 'join'>(joinCode ? 'join' : 'home');
   const [roomCode, setRoomCode] = useState(joinCode);
-  const [showHowTo, setShowHowTo] = useState(false);
-  const [showAbout, setShowAbout] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showWordBank, setShowWordBank] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showRadar, setShowRadar] = useState(false);
 
@@ -477,18 +474,11 @@ export function HomeScreen() {
           {showLangMenu && <div className="fixed inset-0 z-20" onClick={() => setShowLangMenu(false)} />}
         </div>
         <button
-          onClick={() => { playClick(); setShowHowTo(true); }}
+          onClick={() => { playClick(); setShowSettings(true); }}
           className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
-          title={t('howto.title', language)}
+          title={t('settings.title', language)}
         >
-          <HelpCircle className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => { playClick(); setShowAbout(true); }}
-          className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-accent hover:border-accent/40 transition-colors"
-          title={t('about.title', language)}
-        >
-          <Info className="w-5 h-5" />
+          <Settings className="w-5 h-5" />
         </button>
         <button
           onClick={() => { playClick(); setShowRadar(true); }}
@@ -609,26 +599,19 @@ export function HomeScreen() {
                 {t('home.create', language)}
               </button>
               <button
-                onClick={() => { playClick(); setShowSettings(true); }}
-                className="w-full py-4 spooky-btn text-base flex items-center justify-center gap-2"
-              >
-                <Settings className="w-5 h-5" />
-                {t('settings.title', language)}
-              </button>
-              <button
-                onClick={() => { playClick(); setShowWordBank(true); }}
-                className="w-full py-4 spooky-btn text-base flex items-center justify-center gap-2"
-              >
-                <BookOpen className="w-5 h-5" />
-                {t('wordbank.title', language)}
-              </button>
-              <button
                 onClick={() => { playClick(); if (nickname.trim()) setMode('join'); }}
                 disabled={!nickname.trim()}
                 className="w-full py-4 spooky-btn-gold spooky-btn text-base flex items-center justify-center gap-2"
               >
                 <Globe className="w-5 h-5" />
                 {t('home.join', language)}
+              </button>
+              <button
+                onClick={() => { playClick(); setShowSettings(true); }}
+                className="w-full py-3 spooky-btn text-sm flex items-center justify-center gap-2 opacity-90"
+              >
+                <Sliders className="w-4 h-4" />
+                {t('settings.title', language)}
               </button>
             </motion.div>
           )}
@@ -692,11 +675,8 @@ export function HomeScreen() {
 
       {/* Modals */}
       <AnimatePresence>
-        {showHowTo && <HowToPlayModal language={language} onClose={() => setShowHowTo(false)} />}
-        {showAbout && <AboutModal language={language} onClose={() => setShowAbout(false)} />}
         {showRadar && <RadarNearby onClose={() => setShowRadar(false)} />}
         {showSettings && <SettingsModal language={language} onClose={() => setShowSettings(false)} />}
-        {showWordBank && <WordBankModal language={language} uiLang={language} onClose={() => setShowWordBank(false)} />}
       </AnimatePresence>
     </div>
   );
