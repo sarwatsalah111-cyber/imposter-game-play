@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { t, LANGUAGES, type Language } from '@/lib/i18n';
-import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, BookOpen, ChevronDown, Type, Radar } from 'lucide-react';
+import { Users, Globe, HelpCircle, Info, X, ChevronRight, Settings, Minus, Plus, Volume2, VolumeX, Vibrate, BookOpen, ChevronDown, Type, Radar, Sliders, Music2, Gamepad2 } from 'lucide-react';
 import { RadarNearby } from './RadarNearby';
 import { SpyLogo } from './SpyLogo';
 import spyLogo from '@/assets/spy-logo.mp4.asset.json';
@@ -11,110 +11,58 @@ import { startAmbient, stopAmbient, playClick, isSoundEnabled, setSoundEnabled, 
 import { getDefaultSettings, saveDefaultSettings, type DefaultGameSettings, getSoraniFont, setSoraniFont as saveSoraniFont, type SoraniFont } from '@/lib/session';
 import { WordBankModal } from './WordBankManager';
 
-function HowToPlayModal({ language, onClose }: { language: Language; onClose: () => void }) {
+function HowToPlaySection({ language }: { language: Language }) {
   const steps = [
     { icon: '👥', title: t('howto.step1Title', language), desc: t('howto.step1Desc', language) },
     { icon: '🔍', title: t('howto.step2Title', language), desc: t('howto.step2Desc', language) },
     { icon: '🗣️', title: t('howto.step3Title', language), desc: t('howto.step3Desc', language) },
     { icon: '🗳️', title: t('howto.step4Title', language), desc: t('howto.step4Desc', language) },
     { icon: '🏆', title: t('howto.step5Title', language), desc: t('howto.step5Desc', language) },
+    { icon: '💀', title: t('howto.step6Title', language), desc: t('howto.step6Desc', language) },
   ];
-
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain p-4 py-[env(safe-area-inset-top,1rem)] bg-background/80 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm spooky-panel p-5 my-auto"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple flex items-center gap-2">
-            <HelpCircle className="w-5 h-5 text-primary" />
-            {t('howto.title', language)}
-          </h2>
-          <button onClick={() => { playClick(); onClose(); }} className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          {steps.map((step, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className="flex gap-3 p-3 rounded-lg spooky-inner border border-border"
-            >
-              <span className="text-2xl flex-shrink-0">{step.icon}</span>
-              <div>
-                <p className="font-display font-bold text-accent text-sm uppercase tracking-wider">{step.title}</p>
-                <p className="text-muted-foreground text-xs mt-0.5 leading-relaxed">{step.desc}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
-    </motion.div>
+    <div className="space-y-2.5">
+      {steps.map((step, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: i * 0.05 }}
+          className="flex gap-3 p-3 rounded-lg spooky-inner border border-border"
+        >
+          <span className="text-2xl flex-shrink-0 leading-none">{step.icon}</span>
+          <div className="min-w-0">
+            <p className="font-display font-bold text-accent text-sm uppercase tracking-wider">{step.title}</p>
+            <p className="text-muted-foreground text-xs mt-0.5 leading-relaxed">{step.desc}</p>
+          </div>
+        </motion.div>
+      ))}
+    </div>
   );
 }
 
-function AboutModal({ language, onClose }: { language: Language; onClose: () => void }) {
+function AboutSection({ language }: { language: Language }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain p-4 py-[env(safe-area-inset-top,1rem)] bg-background/80 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm spooky-panel p-5 my-auto"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple flex items-center gap-2">
-            <Info className="w-5 h-5 text-primary" />
-            {t('about.title', language)}
-          </h2>
-          <button onClick={() => { playClick(); onClose(); }} className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center">
-            <SpyLogo size={56} className="text-primary drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]" />
-          </div>
-          <h3 className="font-display text-2xl font-bold text-foreground uppercase tracking-wider text-glow-purple">
-            {t('app.title', language)}
-          </h3>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            {t('about.description', language)}
-          </p>
-          <div className="spooky-inner border border-border rounded-lg p-4">
-            <p className="text-muted-foreground text-xs uppercase tracking-widest font-display mb-1">
-              {t('about.developedBy', language)}
-            </p>
-            <p className="font-display text-xl font-bold text-accent text-glow-gold uppercase tracking-wider">
-              Saro
-            </p>
-          </div>
-          <p className="text-muted-foreground/50 text-xs font-display">v1.0</p>
-        </div>
-      </motion.div>
-    </motion.div>
+    <div className="text-center space-y-4 py-2">
+      <div className="flex items-center justify-center">
+        <SpyLogo size={56} className="text-primary drop-shadow-[0_0_12px_hsl(var(--primary)/0.4)]" />
+      </div>
+      <h3 className="font-display text-2xl font-bold text-foreground uppercase tracking-wider text-glow-purple">
+        {t('app.title', language)}
+      </h3>
+      <p className="text-muted-foreground text-sm leading-relaxed">
+        {t('about.description', language)}
+      </p>
+      <div className="spooky-inner border border-border rounded-lg p-4">
+        <p className="text-muted-foreground text-xs uppercase tracking-widest font-display mb-1">
+          {t('about.developedBy', language)}
+        </p>
+        <p className="font-display text-xl font-bold text-accent text-glow-gold uppercase tracking-wider">
+          Saro
+        </p>
+      </div>
+      <p className="text-muted-foreground/50 text-xs font-display">v1.0</p>
+    </div>
   );
 }
 
