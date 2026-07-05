@@ -297,7 +297,7 @@ export function WordBankModal({ language, uiLang, onClose }: { language: string;
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-background/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:modal-safe-inset pb-safe-kb bg-background/80 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
@@ -305,7 +305,7 @@ export function WordBankModal({ language, uiLang, onClose }: { language: string;
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 40, opacity: 0 }}
         onClick={e => e.stopPropagation()}
-        className="w-full sm:max-w-md spooky-panel p-4 sm:p-5 max-h-[95vh] sm:max-h-[85vh] flex flex-col rounded-t-2xl sm:rounded-xl"
+        className="w-full sm:max-w-md spooky-panel p-4 sm:p-5 modal-max-h flex flex-col rounded-t-2xl sm:rounded-xl"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
