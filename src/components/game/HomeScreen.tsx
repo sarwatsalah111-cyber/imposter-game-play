@@ -140,7 +140,7 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain p-4 py-[env(safe-area-inset-top,1rem)] bg-background/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center overscroll-contain p-2 sm:p-4 bg-background/80 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
@@ -148,9 +148,9 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md spooky-panel p-4 sm:p-5 my-auto"
+        className="w-full max-w-md sm:max-w-lg md:max-w-2xl spooky-panel p-3 sm:p-5 flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)]"
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3 sm:mb-4 shrink-0">
           <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple flex items-center gap-2">
             <Settings className="w-5 h-5 text-primary" />
             {t('settings.title', language)}
@@ -161,15 +161,15 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
         </div>
 
         {/* Section navigation */}
-        <div className="relative -mx-1 mb-4 overflow-x-auto no-scrollbar">
-          <div className="flex gap-1.5 px-1 pb-1 min-w-max">
+        <div className="relative -mx-1 mb-3 sm:mb-4 overflow-x-auto no-scrollbar shrink-0">
+          <div className="flex gap-1.5 px-1 pb-2 min-w-max">
             {NAV.map(n => {
               const active = section === n.id;
               return (
                 <button
                   key={n.id}
                   onClick={() => { playClick(); setSection(n.id); }}
-                  className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
+                  className={`relative flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-display font-semibold uppercase tracking-wider transition-all whitespace-nowrap shrink-0 ${
                     active
                       ? 'spooky-btn-gold text-background'
                       : 'spooky-inner border border-border text-muted-foreground hover:text-foreground hover:border-primary/40'
@@ -177,19 +177,13 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
                 >
                   <n.icon className="w-3.5 h-3.5" />
                   {n.label}
-                  {active && (
-                    <motion.span
-                      layoutId="settings-nav-underline"
-                      className="absolute -bottom-[3px] left-3 right-3 h-[2px] rounded-full bg-accent"
-                    />
-                  )}
                 </button>
               );
             })}
           </div>
         </div>
 
-        <div className="max-h-[65vh] overflow-y-auto pr-1 -mr-1">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 -mr-1">
           <AnimatePresence mode="wait">
             <motion.div
               key={section}
@@ -338,7 +332,7 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
         </div>
 
         {showSaveBar && (
-          <div className="flex gap-2 mt-4 pt-3 border-t border-border">
+          <div className="flex gap-2 mt-3 sm:mt-4 pt-3 border-t border-border shrink-0">
             <button onClick={handleReset} className="flex-1 py-2.5 spooky-btn text-xs">
               {t('settings.reset', language)}
             </button>
