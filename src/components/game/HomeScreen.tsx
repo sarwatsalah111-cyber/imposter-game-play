@@ -141,6 +141,12 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center overscroll-contain p-2 sm:p-4 bg-background/80 backdrop-blur-sm"
+      style={{
+        paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
+        paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
+        paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
+      }}
       onClick={onClose}
     >
       <motion.div
@@ -148,7 +154,7 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md sm:max-w-lg md:max-w-2xl spooky-panel p-3 sm:p-5 flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)]"
+        className="w-full max-w-md sm:max-w-lg md:max-w-2xl spooky-panel p-3 sm:p-5 flex flex-col max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)]"
       >
         <div className="flex items-center justify-between mb-3 sm:mb-4 shrink-0">
           <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple flex items-center gap-2">
