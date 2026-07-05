@@ -66,7 +66,14 @@ export function OnboardingFlow({ onComplete }: Props) {
   ];
 
   return (
-    <div dir={dir} className="fixed inset-0 z-50 bg-background flex flex-col p-5 py-[env(safe-area-inset-top,1.25rem)] overflow-y-auto">
+    <div
+      dir={dir}
+      className="fixed inset-0 z-50 bg-background flex flex-col px-5 overflow-y-auto"
+      style={{
+        paddingTop: 'max(1.25rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1.25rem, calc(env(safe-area-inset-bottom) + var(--kb-inset, 0px)))',
+      }}
+    >
       {/* Progress dots */}
       <div className="flex justify-center gap-1.5 mb-6 pt-2">
         {Array.from({ length: totalSteps }).map((_, i) => (

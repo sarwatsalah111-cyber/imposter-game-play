@@ -125,13 +125,13 @@ export function RadarNearby({ onClose }: { onClose: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/85 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center modal-safe-inset bg-background/85 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
         initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm spooky-panel p-5"
+        className="w-full max-w-sm spooky-panel p-5 modal-max-h overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple flex items-center gap-2">

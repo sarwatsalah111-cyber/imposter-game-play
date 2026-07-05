@@ -169,6 +169,24 @@
 }
 
 @layer utilities {
+  /* Keyboard-aware safe area utilities.
+     `--kb-inset` is set by <KeyboardInsetHandler /> (0px when keyboard closed). */
+  .pb-safe-kb {
+    padding-bottom: calc(env(safe-area-inset-bottom) + var(--kb-inset, 0px));
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .modal-safe-inset {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-bottom: max(0.5rem, calc(env(safe-area-inset-bottom) + var(--kb-inset, 0px)));
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+    padding-right: max(0.5rem, calc(env(safe-area-inset-right)));
+  }
+  .modal-max-h {
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--kb-inset, 0px) - 1rem);
+  }
+
   /* Spooky panel – solid (no glass) */
   .spooky-panel {
     background: hsl(275 85% 10%);
