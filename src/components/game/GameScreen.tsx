@@ -42,7 +42,7 @@ export function GameScreen() {
 
         {/* Leave confirmation modal */}
         {showLeaveConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 modal-safe-inset">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
