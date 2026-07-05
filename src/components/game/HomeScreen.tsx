@@ -10,6 +10,7 @@ import spyLogo from '@/assets/spy-logo.mp4.asset.json';
 import { startAmbient, stopAmbient, playClick, isSoundEnabled, setSoundEnabled, isVibrationEnabled, setVibrationEnabled } from '@/lib/sounds';
 import { getDefaultSettings, saveDefaultSettings, type DefaultGameSettings, getSoraniFont, setSoraniFont as saveSoraniFont, type SoraniFont } from '@/lib/session';
 import { WordBankModal } from './WordBankManager';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 
 function HowToPlaySection({ language }: { language: Language }) {
   const steps = [
@@ -98,6 +99,24 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
   const [settings, setSettings] = useState<DefaultGameSettings>(getDefaultSettings());
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
   const [vibrationOn, setVibrationOn] = useState(isVibrationEnabled());
+  const keyboardInset = useKeyboardInset();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // When the keyboard opens over a focused input inside the modal, scroll the
+  // focused element into view so it never gets covered.
+  useEffect(() => {
+    if (!keyboardInset) return;
+    const el = document.activeElement as HTMLElement | null;
+    if (!el) return;
+    const tag = el.tagName;
+    if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !el.isContentEditable) return;
+    if (!scrollRef.current?.contains(el)) return;
+    // Delay to let layout settle after resize.
+    const id = window.setTimeout(() => {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 80);
+    return () => window.clearTimeout(id);
+  }, [keyboardInset]);
   const [soraniFont, setSoraniFontState] = useState<SoraniFont>(getSoraniFont());
   const [saved, setSaved] = useState(false);
   const [section, setSection] = useState<'game' | 'audio' | 'font' | 'words' | 'howto' | 'about'>('game');
@@ -143,7 +162,7 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
       className="fixed inset-0 z-50 flex items-center justify-center overscroll-contain p-2 sm:p-4 bg-background/80 backdrop-blur-sm"
       style={{
         paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
-        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
+        paddingBottom: `max(0.5rem, calc(env(safe-area-inset-bottom) + ${keyboardInset}px))`,
         paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
         paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
       }}
@@ -154,7 +173,10 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md sm:max-w-lg md:max-w-2xl spooky-panel p-3 sm:p-5 flex flex-col max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)]"
+        className="w-full max-w-md sm:max-w-lg md:max-w-2xl spooky-panel p-3 sm:p-5 flex flex-col"
+        style={{
+          maxHeight: `calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - ${keyboardInset}px - 1rem)`,
+        }}
       >
         <div className="flex items-center justify-between mb-3 sm:mb-4 shrink-0">
           <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple flex items-center gap-2">
@@ -189,7 +211,7 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 -mr-1">
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 -mr-1">
           <AnimatePresence mode="wait">
             <motion.div
               key={section}
