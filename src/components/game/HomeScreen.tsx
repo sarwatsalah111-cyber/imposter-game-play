@@ -357,7 +357,7 @@ export function HomeScreen() {
   const [searchParams, setSearchParams] = useSearchParams();
   const joinCode = searchParams.get('join') || '';
 
-  const [mode, setMode] = useState<'home' | 'create' | 'join'>(joinCode ? 'join' : 'home');
+  const [mode, setMode] = useState<'home' | 'playNow' | 'create' | 'join'>(joinCode ? 'join' : 'home');
   const [roomCode, setRoomCode] = useState(joinCode);
   const [showSettings, setShowSettings] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -437,49 +437,12 @@ export function HomeScreen() {
 
       {/* Top-right menu buttons */}
       <div className="fixed top-4 right-4 z-20 flex gap-2 safe-area-top">
-        {/* Language dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => { playClick(); setShowLangMenu(!showLangMenu); }}
-            className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
-            title={t('home.language', language)}
-          >
-            <Globe className="w-5 h-5" />
-          </button>
-          <div
-            className={`absolute right-0 top-12 spooky-panel border border-border rounded-lg p-1.5 min-w-[140px] z-30 transition-all duration-150 origin-top-right ${
-              showLangMenu ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
-            }`}
-          >
-            {LANGUAGES.map(lang => (
-              <button
-                key={lang.code}
-                onClick={() => { playClick(); setLanguage(lang.code); setShowLangMenu(false); }}
-                className={`w-full px-3 py-2 rounded-md text-xs font-semibold transition-all text-left ${
-                  language === lang.code
-                    ? 'spooky-btn-gold'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                }`}
-              >
-                {lang.label}
-              </button>
-            ))}
-          </div>
-          {showLangMenu && <div className="fixed inset-0 z-20" onClick={() => setShowLangMenu(false)} />}
-        </div>
         <button
           onClick={() => { playClick(); setShowSettings(true); }}
           className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
           title={t('settings.title', language)}
         >
           <Settings className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => { playClick(); setShowRadar(true); }}
-          className="w-10 h-10 rounded-lg spooky-inner border border-emerald-500/40 flex items-center justify-center text-emerald-300 hover:text-emerald-200 hover:border-emerald-400/70 transition-colors shadow-[0_0_10px_hsl(150_90%_45%/0.35)]"
-          title={t('home.radar', language)}
-        >
-          <Radar className="w-5 h-5" />
         </button>
       </div>
 
@@ -585,12 +548,12 @@ export function HomeScreen() {
               className="flex flex-col gap-3"
             >
               <button
-                onClick={() => { playClick(); if (nickname.trim()) setMode('create'); }}
+                onClick={() => { playClick(); if (nickname.trim()) setMode('playNow'); }}
                 disabled={!nickname.trim()}
                 className="w-full py-4 spooky-btn text-base flex items-center justify-center gap-2"
               >
-                <Users className="w-5 h-5" />
-                {t('home.create', language)}
+                <Gamepad2 className="w-5 h-5" />
+                {t('home.playNow', language)}
               </button>
               <button
                 onClick={() => { playClick(); if (nickname.trim()) setMode('join'); }}
@@ -600,12 +563,68 @@ export function HomeScreen() {
                 <Globe className="w-5 h-5" />
                 {t('home.join', language)}
               </button>
+              {/* Language selector (moved from top-right) */}
+              <div className="relative">
+                <button
+                  onClick={() => { playClick(); setShowLangMenu(!showLangMenu); }}
+                  className="w-full py-3 spooky-btn text-sm flex items-center justify-center gap-2 opacity-90"
+                  title={t('home.language', language)}
+                >
+                  <Globe className="w-4 h-4" />
+                  {LANGUAGES.find(l => l.code === language)?.label ?? t('home.language', language)}
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showLangMenu ? 'rotate-180' : ''}`} />
+                </button>
+                <div
+                  className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-2 spooky-panel border border-border rounded-lg p-1.5 min-w-[180px] z-30 transition-all duration-150 origin-bottom ${
+                    showLangMenu ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                  }`}
+                >
+                  {LANGUAGES.map(lang => (
+                    <button
+                      key={lang.code}
+                      onClick={() => { playClick(); setLanguage(lang.code); setShowLangMenu(false); }}
+                      className={`w-full px-3 py-2 rounded-md text-xs font-semibold transition-all text-left ${
+                        language === lang.code
+                          ? 'spooky-btn-gold'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                      }`}
+                    >
+                      {lang.label}
+                    </button>
+                  ))}
+                </div>
+                {showLangMenu && <div className="fixed inset-0 z-20" onClick={() => setShowLangMenu(false)} />}
+              </div>
+            </motion.div>
+          )}
+
+          {mode === 'playNow' && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="flex flex-col gap-3"
+            >
               <button
-                onClick={() => { playClick(); setShowSettings(true); }}
-                className="w-full py-3 spooky-btn text-sm flex items-center justify-center gap-2 opacity-90"
+                onClick={() => { playClick(); handleCreate(); }}
+                disabled={loading || !nickname.trim()}
+                className="w-full py-4 spooky-btn text-base glow-purple flex items-center justify-center gap-2"
               >
-                <Sliders className="w-4 h-4" />
-                {t('settings.title', language)}
+                <Users className="w-5 h-5" />
+                {loading ? '...' : t('home.create', language)}
+              </button>
+              <button
+                onClick={() => { playClick(); setShowRadar(true); }}
+                className="w-full py-4 spooky-btn-gold spooky-btn text-base flex items-center justify-center gap-2"
+              >
+                <Radar className="w-5 h-5" />
+                {t('home.radar', language)}
+              </button>
+              <button
+                onClick={() => { playClick(); setMode('home'); }}
+                className="text-muted-foreground text-sm hover:text-foreground transition-colors font-display uppercase tracking-wider"
+              >
+                ← {t('lobby.leave', language)}
               </button>
             </motion.div>
           )}
