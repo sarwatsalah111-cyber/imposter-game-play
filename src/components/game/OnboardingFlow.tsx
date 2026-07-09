@@ -94,7 +94,7 @@ export function OnboardingFlow({ onComplete }: Props) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.25 }}
-            className="w-full max-w-sm spooky-panel p-6"
+            className="w-full max-w-sm spooky-panel p-6 pb-0"
           >
             {step === 0 && (
               <div className="space-y-4">
