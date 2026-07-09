@@ -253,10 +253,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Mark online
-        await supabase.from('room_players').update({
-          is_online: true, last_heartbeat: new Date().toISOString(),
-        }).eq('id', player.id);
+        // Mark online via server-authoritative heartbeat (client cannot write directly)
+        try {
+          await engine.heartbeat(state.sessionId, (room as unknown as Room).id);
+        } catch {
+          // non-fatal; realtime will resync
+        }
 
         const r = room as unknown as Room;
         const { data: players } = await supabase
