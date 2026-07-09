@@ -575,7 +575,7 @@ export function HomeScreen() {
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showLangMenu ? 'rotate-180' : ''}`} />
                 </button>
                 <div
-                  className={`absolute inset-x-0 bottom-full mb-2 spooky-panel border border-border rounded-lg p-1.5 w-full z-30 transition-all duration-150 origin-bottom ${
+                  className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-2 spooky-panel border border-border rounded-lg p-1.5 min-w-[180px] z-30 transition-all duration-150 origin-bottom ${
                     showLangMenu ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
                   }`}
                 >
