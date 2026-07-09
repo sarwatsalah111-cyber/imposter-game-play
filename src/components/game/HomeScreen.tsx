@@ -518,7 +518,7 @@ export function HomeScreen() {
         {/* Main panel */}
         <div className="w-full spooky-panel spider-corner p-5 scratched-texture">
           {/* Nickname input */}
-          <div className="mb-4">
+          <div className="mb-3">
             <input
               type="text"
               placeholder={t('home.nickname', language)}
