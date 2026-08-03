@@ -25,7 +25,6 @@ export function NativeShell() {
       } catch {}
       try {
         if (isIOS()) await Keyboard.setResizeMode({ mode: KeyboardResize.Native });
-        await Keyboard.setScrollAssist?.({ isDisabled: false });
       } catch {}
       try {
         await SplashScreen.hide();
