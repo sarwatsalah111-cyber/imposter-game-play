@@ -412,12 +412,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       engine.heartbeat(sessionIdRef.current, roomId).catch(() => {});
     }, 10000);
 
+    // Immediate re-sync when the app comes back to the foreground (native) or
+    // the tab becomes visible again (web).
+    const resync = () => {
+      fetchPlayers(roomId);
+      fetchRoom(roomId);
+      engine.heartbeat(sessionIdRef.current, roomId).catch(() => {});
+    };
+    const onVisible = () => { if (document.visibilityState === 'visible') resync(); };
+    window.addEventListener('native-resume', resync);
+    document.addEventListener('visibilitychange', onVisible);
+
     return () => {
       supabase.removeChannel(roomChannel);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (playerPollRef.current) clearInterval(playerPollRef.current);
       clearInterval(spokePollRef_inner);
       clearInterval(migrationRef);
+      window.removeEventListener('native-resume', resync);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [state.room?.id]);
 

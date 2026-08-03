@@ -454,3 +454,25 @@
 .font-sorani * {
   font-family: 'PeshangDes', sans-serif !important;
 }
+
+/* ============ Native app shell (Capacitor iOS/Android) ============ */
+html.is-native,
+html.is-native body {
+  overscroll-behavior: none;           /* no pull-to-refresh / rubber-band */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;         /* no long-press callout menus */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;          /* no double-tap zoom */
+}
+
+html.is-native input,
+html.is-native textarea,
+html.is-native [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+html.is-native video {
+  pointer-events: none;                /* no native video controls / menus */
+}
