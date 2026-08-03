@@ -4,6 +4,7 @@ import { HomeScreen } from '@/components/game/HomeScreen';
 import { LobbyScreen } from '@/components/game/LobbyScreen';
 import { GameScreen } from '@/components/game/GameScreen';
 import { OnboardingFlow } from '@/components/game/OnboardingFlow';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { getDir } from '@/lib/i18n';
 import { getSoraniFont, isOnboardingComplete } from '@/lib/session';
 import { useState, useEffect } from 'react';
@@ -27,6 +28,7 @@ function GameContent() {
 
   return (
     <div dir={dir} className={`min-h-screen bg-background ${fontClass}`}>
+      <OfflineBanner />
       {showOnboarding && !room && <OnboardingFlow onComplete={() => setShowOnboarding(false)} />}
       {!showOnboarding && !room && <HomeScreen />}
       {room && phase === 'lobby' && <LobbyScreen />}

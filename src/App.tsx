@@ -7,6 +7,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { KeyboardInsetHandler } from "./hooks/useKeyboardInset";
+import { NativeShell } from "./hooks/useNativeShell";
+import { isNative } from "./lib/native";
 
 const queryClient = new QueryClient();
 
@@ -15,8 +17,9 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <PWAInstallPrompt />
+      {!isNative() && <PWAInstallPrompt />}
       <KeyboardInsetHandler />
+      <NativeShell />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
