@@ -1,4 +1,6 @@
 // Web Audio API based sound system — creepy ambient music + game SFX
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { isNative } from './native';
 
 const SOUND_STORAGE_KEY = 'imposter-sound-enabled';
 const VIBRATION_STORAGE_KEY = 'imposter-vibration-enabled';
