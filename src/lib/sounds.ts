@@ -24,9 +24,34 @@ export function setVibrationEnabled(enabled: boolean) {
 }
 
 export function vibrate(pattern: number | number[] = 30) {
-  if (isVibrationEnabled() && navigator.vibrate) {
-    navigator.vibrate(pattern);
+  if (!isVibrationEnabled()) return;
+
+  // Native shell: use the Haptics plugin (works even when the WebView blocks
+  // navigator.vibrate, e.g. on iOS).
+  if (isNative()) {
+    const steps = Array.isArray(pattern) ? pattern : [pattern];
+    let delay = 0;
+    steps.forEach((ms, i) => {
+      if (i % 2 === 0) {
+        // vibrate step
+        const at = delay;
+        window.setTimeout(() => {
+          Haptics.vibrate({ duration: Math.max(10, Math.min(1000, ms)) }).catch(() => {});
+        }, at);
+      }
+      delay += ms;
+    });
+    return;
   }
+
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
+
+/** Light tactile feedback for taps — native only, silent no-op on web. */
+export function hapticTap(style: 'light' | 'medium' | 'heavy' = 'light') {
+  if (!isVibrationEnabled() || !isNative()) return;
+  const map = { light: ImpactStyle.Light, medium: ImpactStyle.Medium, heavy: ImpactStyle.Heavy };
+  Haptics.impact({ style: map[style] }).catch(() => {});
 }
 
 function getAudioContext(): AudioContext {
