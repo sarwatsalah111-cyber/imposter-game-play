@@ -16,6 +16,7 @@ function SettingControl({ label, value, onChange, min, max, step = 1, suffix = '
       <div className="flex items-center gap-2">
         <button
           onClick={() => { playClick(); onChange(Math.max(min, value - step)); }}
+          aria-label={`Decrease ${label}`}
           className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-foreground hover:border-primary/40 transition-colors"
         >
           <Minus className="w-3 h-3" />
@@ -25,6 +26,7 @@ function SettingControl({ label, value, onChange, min, max, step = 1, suffix = '
         </span>
         <button
           onClick={() => { playClick(); onChange(Math.min(max, value + step)); }}
+          aria-label={`Increase ${label}`}
           className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-foreground hover:border-primary/40 transition-colors"
         >
           <Plus className="w-3 h-3" />
@@ -45,6 +47,8 @@ function ToggleSetting({ label, icon: Icon, enabled, onToggle }: {
       </span>
       <button
         onClick={() => { playClick(); onToggle(); }}
+        aria-label={label}
+        aria-pressed={enabled}
         className={`w-12 h-7 rounded-full transition-all relative ${
           enabled ? 'bg-accent' : 'bg-muted border border-border'
         }`}
@@ -152,11 +156,11 @@ export function LobbyScreen() {
       <div className="relative z-10 flex flex-col flex-1 max-w-md mx-auto w-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => { playClick(); leaveRoom(); }} className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors">
+          <button onClick={() => { playClick(); leaveRoom(); }} aria-label={t('lobby.leave', language)} className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors">
             <LogOut className="w-4 h-4" />
           </button>
           <h2 className="font-display font-bold text-foreground text-lg uppercase tracking-wider text-glow-purple">{t('lobby.title', language)}</h2>
-          <button onClick={() => { playClick(); setShowSettings(!showSettings); }} className={`w-10 h-10 rounded-lg spooky-inner border flex items-center justify-center transition-colors ${showSettings ? 'border-accent text-accent' : 'border-border text-muted-foreground hover:text-foreground hover:border-primary/40'}`}>
+          <button onClick={() => { playClick(); setShowSettings(!showSettings); }} aria-label={t('settings.title', language)} className={`w-10 h-10 rounded-lg spooky-inner border flex items-center justify-center transition-colors ${showSettings ? 'border-accent text-accent' : 'border-border text-muted-foreground hover:text-foreground hover:border-primary/40'}`}>
             <Settings className="w-4 h-4" />
           </button>
         </div>
@@ -170,7 +174,7 @@ export function LobbyScreen() {
           >
             <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
             <span className="text-sm text-destructive flex-1">{error}</span>
-            <button onClick={() => { playClick(); clearError(); }} className="text-destructive/60 hover:text-destructive">
+            <button onClick={() => { playClick(); clearError(); }} aria-label="Dismiss error" className="text-destructive/60 hover:text-destructive">
               <X className="w-4 h-4" />
             </button>
           </motion.div>
@@ -255,6 +259,7 @@ export function LobbyScreen() {
             </button>
             <button
               onClick={shareLink}
+              aria-label={t('lobby.share', language)}
               className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-accent hover:border-accent/40 transition-colors"
               title={t('lobby.share', language)}
             >
@@ -400,6 +405,7 @@ export function LobbyScreen() {
                 {isHost && !player.is_host && player.session_id !== sessionId && (
                   <button
                     onClick={(e) => { e.stopPropagation(); playClick(); kickPlayer(player.session_id); }}
+                    aria-label={`${t('lobby.kick', language)}: ${player.nickname}`}
                     className="w-7 h-7 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
                     title={t('lobby.kick', language)}
                   >
