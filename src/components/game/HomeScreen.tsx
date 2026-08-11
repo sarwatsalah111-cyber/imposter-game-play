@@ -76,6 +76,7 @@ function SettingRow({ label, value, onChange, min, max, step = 1, suffix = '' }:
       <div className="flex items-center gap-2">
         <button
           onClick={() => { playClick(); onChange(Math.max(min, value - step)); }}
+          aria-label={`Decrease ${label}`}
           className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-foreground hover:border-primary/40 transition-colors"
         >
           <Minus className="w-3 h-3" />
@@ -85,6 +86,7 @@ function SettingRow({ label, value, onChange, min, max, step = 1, suffix = '' }:
         </span>
         <button
           onClick={() => { playClick(); onChange(Math.min(max, value + step)); }}
+          aria-label={`Increase ${label}`}
           className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-foreground hover:border-primary/40 transition-colors"
         >
           <Plus className="w-3 h-3" />
@@ -155,7 +157,7 @@ function SettingsModal({ language, onClose }: { language: Language; onClose: () 
             <Settings className="w-5 h-5 text-primary" />
             {t('settings.title', language)}
           </h2>
-          <button onClick={() => { playClick(); onClose(); }} className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={() => { playClick(); onClose(); }} aria-label="Close settings" className="w-8 h-8 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -439,6 +441,7 @@ export function HomeScreen() {
       <div className="fixed top-4 right-4 z-20 flex gap-2 safe-area-top">
         <button
           onClick={() => { playClick(); setShowSettings(true); }}
+          aria-label={t('settings.title', language)}
           className="w-10 h-10 rounded-lg spooky-inner border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
           title={t('settings.title', language)}
         >
