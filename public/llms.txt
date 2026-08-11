@@ -1,0 +1,9 @@
+# The Imposter
+
+> A free realtime multiplayer party word game: everyone gets the secret word except the imposter — talk, vote, and find the fake among you.
+
+The Imposter is played on phones in the same room or remotely. A host creates a room, friends join with a 6-digit code or the nearby-rooms radar, then players take turns describing the secret word before voting out the suspect. Available in English, Arabic, Kurdish Sorani and Kurdish Kurmanji, and installable as a mobile app.
+
+## Pages
+
+- [Play The Imposter](/): Create or join a room and play the game.
